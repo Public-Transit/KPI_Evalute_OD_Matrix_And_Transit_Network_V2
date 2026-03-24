@@ -1,0 +1,38 @@
+Hệ thống gồm có 3 tầng: Domain Adapter và Services
+(Adapter chứa Repository và các module tính tóa phụ thuộc vào thư viện ngoài)
+
+Luồng của hệ thống:
+	B1: Hệ thống nhận yêu cầu từ user thông qua http request và tìm service xử lý request đó dựa trên cấu hình sẵn ở lớp service
+	B2: Tầng Service gọi unit of work(uow) để thực hiện thực hiện các thao tác với database ( chủ yếu là việc nhập xuất, xửu lý và thay đổi database thong qua repository) , nếu không có lỗi xảy ra thì có thể cập nhật database nếu có yêu cầu
+	B3: Uow sẽ gọi đến cơ sở dữ liệu để lấy các instance của các domain class cần thiết. Tcủa các entities trong domain đã được repo trả ra từ vi	
+	B4: Tầng Service sử dụng các instance này và kết hợp với các method có trong domain để tính toán và trả ra các json 
+
+Tương tác của từng thành phần:
+	1. Domain và Apdater:
+		Repository trong adapter sẽ điền dữ liệu từ database vào trong các cấu trúc class trong domain để tạo ra các instance
+		Domain sẽ có thể cần các hàm tính toán phức tạp mà thư viện ngoài hỗ trơ, nhưng trong domain ko được dùng thư viện của bên thứ ba => Domain tạo ra 1 port.py chứa abstract/interface của các hàm tính toán phức tạp. Adapter
+		sẽ chứa các class dùng các lib ngoài và sử dụng interface trong port của domain => trong domain sẽ chèn các class tính toán trong port của domain dưới dạng tiêm phụ thuộc
+	
+	2. Repository( Adapter) và Service:
+		Các uow của Service chịu trach nghiệm tương tác với databasse thông qua Repository, bằng cách tuong tác với absstract repo của Repository để có thể tổng quát được quá trình lấy dữ liệu bất kể database là dạng gì
+	
+	3. Domain, Repository( Adapter) và Service:
+		Luồng: Service nhận task từ user, dùng uow để thao tác cơ sở dữ liệu để lấy ra các instance của các Entities trong domain để sử dụng. Service kết hợp với các logic nghiệp vụ mà domain cung cấp để thực hiện task
+		Mỗi lần service được gọi thì nó sẽ dùng repo để tạo các instance của các Entities trong domain, chứ nó ko lưu lại các instace này trong lớp service
+
+Về UOW:
+	Khi tầng Service cần làm việc, nó mượn tay UoW (và Repository bên trong UoW) để lấy dữ liệu.
+
+	Repository chui xuống Database (ổ cứng), copy dữ liệu thô đó lên và đúc thành một Object/Instance của Python trên RAM. Đây chính là cái "clone" mà bạn nhắc đến.
+
+	Tầng Service chỉ làm việc duy nhất với cái clone này. Nó gọi các hàm (methods) của Domain trên clone đó, thay đổi các thuộc tính (ví dụ: clone.status = 'COMPLETED'). 
+	Trong suốt quá trình này, Database gốc hoàn toàn không bị ảnh hưởng, nó không hề biết là clone của mình đang bị chỉnh sửa.
+
+	Về vai trò quản lý thay đổi của UoW:
+		UoW chính là người "quản lý sự thay đổi" (Change Tracker & Transaction Manager)
+		Theo dõi (Tracking): Khi Repository tạo ra cái "clone" đưa cho Service, UoW đã âm thầm đưa cái clone đó vào "danh sách theo dõi". Để sau này nếu có chỉnh sử thì chỉ cần tìm cái danh sách theo dõi để biết sửa cái gì chứ ko phải cập nhât tất cả database
+		Đồng bộ hóa (Commit): Khi tầng Service tính toán xong xuôi và đưa ra lệnh chốt hạ (uow.commit()), UoW sẽ nhìn lại cái "clone". 
+			Nó so sánh: "À, lúc tao mới nặn mày ra thì status là PENDING, bây giờ Service đã đổi mày thành COMPLETED rồi".
+
+		Thực thi SQL: Ngay giây phút đó, UoW mới ra lệnh cho Repository tạo một câu lệnh SQL (UPDATE bảng SET status = 'COMPLETED' WHERE id = ...) bắn xuống Database để cập nhật Database thật cho giống hệt với cái clone hiện tại.
+		Hủy bỏ (Rollback): Nếu Service code bị lỗi văng exception giữa chừng, hoặc quy tắc Domain không cho phép sửa, block with uow: kết thúc mà không có lệnh commit. UoW sẽ nói: "Hủy hết!" Cái clone trên RAM bị thùng rác của Python (Garbage Collector) dọn đi. Database gốc dưới ổ cứng không mất một sợi tóc nào.

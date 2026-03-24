@@ -1,0 +1,46 @@
+# Project Domain Understanding
+
+This document captures the core concepts, domain entities, and structural design of the KPI Evaluation for OD Matrix and Transit Network project. It is intended as a reference to quickly reload context in the future.
+
+## 1. Domain Entities & Models
+The core domain is designed around a transit network and origin-destination (OD) trips. Key classes include:
+
+*   **Network Elements**: 
+    *   `Point`: A base geometric point (coordinates).
+    *   `Stop`: A transit stop (bus stop).
+    *   [Route](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/route.py#3-26): A transit route containing a sequence of `Stop` IDs and a geometric shape (`list[Point]`).
+    *   `Zone`: A geographic zone representing origins or destinations.
+    *   [TransitNetwork](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/transit_network.py#1-11): A collection of [Route](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/route.py#3-26)s and `Stop`s.
+
+*   **Trip & Demand Elements**:
+    *   [ODPair](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/od_pair.py#1-15): Represents the travel demand between an origin zone and a destination zone.
+    *   `ODMatrix`: A collection of [ODPair](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/od_pair.py#1-15)s and `Zone`s.
+    *   [Leg](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/leg.py#3-8) & [CandidateLeg](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/leg.py#9-14): Represents a segment of a trip (boarding to alighting on a specific route).
+    *   [Trip](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/trip.py#5-8) & [CandidateTrip](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/trip.py#9-12): Collections of legs representing a traveler's path.
+
+*   **Results**:
+    *   [ODRoutingResult](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/routing_result.py#1-15): Stores the result of routing for a specific OD pair, holding the [CandidateTrip](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/trip.py#9-12) and the selected [present_trip](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/routing_result.py#13-15) (used later for KPI calculation).
+
+## 2. Spatial Calculations & The Interface Pattern
+Since transit evaluation relies heavily on spatial operations (e.g., calculating distances, checking if a stop is in a zone, measuring route circuity), the domain models avoid coupling with rigid external geolocation libraries (like Shapely or Geopy). 
+
+Instead, it strictly relies on **Dependency Injection via an Interface**:
+*   **Port interface**: [IGeometryCalculator](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/port.py#9-33) (defined in [src/domain/port.py](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/port.py)).
+*   **Domain usage**: Models like [Route](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/route.py#3-26) have methods ([get_distance_between_two_stops](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/route.py#18-20), [get_cricuity_index_between_two_stops](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/route.py#21-23)) that accept an instance of [IGeometryCalculator](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/port.py#9-33) to perform the actual math.
+*   **Domain Service Spatial**: The [domain/service/spatial.py](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/service/spatial.py) also delegates its logic to this interface (or will receive this interface to solve zone-route intersection queries).
+*   **Adapter Implementation**: Currently mapped to `adapters/geospatial/geopy_shapely.py` (which actually implements the [IGeometryCalculator](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/port.py#9-33) using Shapely/Geopy).
+
+## 3. End-to-End Workflow & Routing Storage
+The high-level intent of the system is a data pipeline mapping SQL/DB rows into Domain Entities to calculate KPIs.
+
+1.  **Ingestion**: [MatsimRepository](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/adapters/repository/matsim_repository.py#1-8) (Adapter) reads database records and instantiates exactly the Domain Entities (`Stop`, [Route](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/route.py#3-26), `Zone`, [ODPair](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/od_pair.py#1-15)).
+2.  **Routing**: The Entrypoint/Service coordinates with the Domain Routing Engine (e.g., [OneTransferRoutingEngine](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/service/routing.py#20-24)) to find feasible paths for an [ODPair](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/od_pair.py#1-15).
+3.  **Filtration & Selection**: The [AbstractRoutesFilter](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/service/filter.py#5-9) filters the candidate trips into optimal ones.
+4.  **Result Storage**: The result is wrapped in [ODRoutingResult](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/routing_result.py#1-15) and saved/passed to the next phase.
+5.  **KPI Calculation**: By passing the [ODRoutingResult](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/routing_result.py#1-15) (which contains the [Trip](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/trip.py#5-8)), the KPI Domain Service calculates metrics like the exact transfer rate or circuity index.
+
+## 4. API Capabilities for Transit Network Analysis
+To make the system interactive, the Entrypoints (FastAPI) will eventually expose endpoints not just to run batch calculations, but to:
+*   Fetch and edit the in-memory/database representations of the [TransitNetwork](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/transit_network.py#1-11) (modifying `Stop`s or [Route](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/route.py#3-26)s).
+*   Re-trigger the routing and KPI calculation on the fly after node/network modifications.
+*   Serve the [ODRoutingResult](file:///d:/CONG_VIEC_VTS/01-WORKS/03-KPIs-FOR-EVUALATING-OD-MATTRIX-DATA-AND-BUS-DATA/03-Code/KPI_Evalute_OD_Matrix_And_Transit_Network_V2/src/domain/model/routing_result.py#1-15) data structure back as a JSON payload for front-end visualizers or reporting tools.
