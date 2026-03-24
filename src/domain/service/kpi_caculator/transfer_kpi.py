@@ -12,12 +12,12 @@ class TransferRateCalculator(KPICalculator):
         Returns:
             dict: Chứa điểm (0 cho đi thẳng, 1 cho 1 lần đổi xe, hoặc "Not valid" nếu lớn hơn)
         """
-        candidate_trip = routing_result.candidate_trip()
+        present_trip = routing_result.present_trip()
         
-        if not candidate_trip or not candidate_trip.candidate_legs:
+        if not present_trip or not present_trip.legs:
             return {"score": "Not valid or >1", "reason": "No valid trip"}
             
-        total_legs = len(candidate_trip.candidate_legs)
+        total_legs = len(present_trip.legs)
         total_transfers = total_legs - 1
         
         if total_transfers == 0:

@@ -1,5 +1,8 @@
 import geopy
+import geopy.distance
 import shapely
+import shapely.geometry
+from shapely.ops import substring
 
 from src.domain.port import IGeometryCalculator
 from src.domain.model.point import Point
@@ -39,7 +42,7 @@ class ShapelyGeometryCalculator(IGeometryCalculator):
 
     def calc_distance_between_two_stops_in_route(self, route: Route, start_stop: Stop, end_stop: Stop) -> float:
         
-        route_linestring = as_shapely_linestring(route.shape)
+        route_linestring = as_shapely_linestring(route.shape())
         start_stop_point = as_shapely(start_stop.coord())
         end_stop_point = as_shapely(end_stop.coord())
             
@@ -60,8 +63,8 @@ class ShapelyGeometryCalculator(IGeometryCalculator):
         real_distance = 0.0
         coords = list(sub_line.coords)
         for i in range(len(coords) - 1):
-            p1 = (coords[i][1], coords[i][0]) # (lat, lon)
-            p2 = (coords[i+1][1], coords[i+1][0])
+            p1 = (coords[i][0], coords[i][1]) # (lat, lon)
+            p2 = (coords[i+1][0], coords[i+1][1])
             real_distance += geopy.distance.geodesic(p1, p2).meters
             
         return real_distance
@@ -74,8 +77,8 @@ class ShapelyGeometryCalculator(IGeometryCalculator):
         return route_dist / straight_dist
 
     def get_shared_stops_two_routes(self, route1: Route, route2: Route) -> list[str]:
-        my_stop_ids = {stop_id() for stop_id in route1.stops_seq()}
-        other_stop_ids = {stop_id() for stop_id in route2.stops_seq()}
+        my_stop_ids = set(route1.stops_seq())
+        other_stop_ids = set(route2.stops_seq())
         
         # Phép & (intersection) của Set trong Python
         shared_ids = my_stop_ids & other_stop_ids 

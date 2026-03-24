@@ -12,7 +12,7 @@ class AbstractRepository(ABC):
         pass
     
     @abstractmethod
-    def get(self, reference) -> Tuple[list[Stop], list[Route], list[Zone], list[ODPair], list[Trip]]:
+    def get(self, reference) -> tuple[list[Stop], list[Route], list[Zone], list[ODPair], list[Trip]]:
         pass
 
     

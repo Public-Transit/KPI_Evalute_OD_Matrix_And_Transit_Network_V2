@@ -97,3 +97,13 @@ class OneTransferRoutingEngine(AbstractRouting):
                     candidate_trips.append(CandidateTrip([leg1, leg2]))
                     
         return candidate_trips
+
+class CombinedRoutingEngine(AbstractRouting):
+    def __init__(self):
+        self.direct = DirectConnectionRouting()
+        self.one_transfer = OneTransferRoutingEngine()
+        
+    def find_candidate_trips_for_od_pair(self, od_pair: ODPair, od_matrix: ODMatrix, transit_network: TransitNetwork, geometry_calculator: IGeometryCalculator) -> list[CandidateTrip]:
+        trips = self.direct.find_candidate_trips_for_od_pair(od_pair, od_matrix, transit_network, geometry_calculator)
+        trips.extend(self.one_transfer.find_candidate_trips_for_od_pair(od_pair, od_matrix, transit_network, geometry_calculator))
+        return trips

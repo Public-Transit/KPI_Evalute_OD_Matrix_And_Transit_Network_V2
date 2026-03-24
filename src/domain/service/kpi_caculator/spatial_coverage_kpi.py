@@ -19,7 +19,7 @@ class SpatialCoverageCalculator(KPICalculator):
         od_matrix: ODMatrix = kwargs.get("od_matrix")
         transit_network: TransitNetwork = kwargs.get("transit_network")
         geometry_calculator: IGeometryCalculator = kwargs.get("geometry_calculator")
-        radius_m: float = kwargs.get("radius_m", 500.0)
+        radius_m: float = kwargs.get("radius_m", 0.0005)
         
         if not all([od_matrix, transit_network, geometry_calculator]):
             raise ValueError("Cần cung cấp od_matrix, transit_network và geometry_calculator")

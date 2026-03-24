@@ -11,5 +11,5 @@ class Point:
     def lon(self) -> float:
         return self._lon
     
-    def distance_to(self, other: Point, geometry_calculator: IGeometryCalculator) -> float:
+    def distance_to(self, other: 'Point', geometry_calculator: IGeometryCalculator) -> float:
         return geometry_calculator.calculate_distance_between_two_points(self, other)

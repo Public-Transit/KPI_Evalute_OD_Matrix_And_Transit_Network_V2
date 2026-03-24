@@ -4,9 +4,9 @@ from pydantic import BaseModel
 
 from src.service_layer.unit_of_work import DummyUnitOfWork
 from src.adapters.repository.abstract_repository import AbstractRepository # Cần implement thực tế
-from src.domain.service.routing import OneTransferRoutingEngine
+from src.domain.service.routing import CombinedRoutingEngine
 from src.service_layer.service import routing_services
-from src.domain.service.filter import FilterStrategy
+from src.domain.service.filter import MinDistanceCandidateTripFilter
 from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
 
 app = FastAPI(title="Transit Network KPI API", description="API định tuyến và đánh giá KPI mạng lưới giao thông")
@@ -26,8 +26,8 @@ def calculate_kpi_all_od_pairs():
     # 1. Khởi tạo cơ sở hạ tầng (Dependencies)
     repo = AbstractRepository()
     uow = DummyUnitOfWork(repo)
-    routing_engine = OneTransferRoutingEngine()
-    filter_engine = FilterStrategy()
+    routing_engine = CombinedRoutingEngine()
+    filter_engine = MinDistanceCandidateTripFilter()
     geo_calc = ShapelyGeometryCalculator()
     
     # 2. Chuyển giao logic cho Application Service

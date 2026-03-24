@@ -40,10 +40,10 @@ class VisualizeZoneAndTransitNetwork:
                     markeredgewidth=2, markeredgecolor=route_colors[i % len(route_colors)],
                     label=route.id(), zorder=4)
             
-            # Điền tên Route ở giữa đoạn đường để dễ nhìn
+            # Điền tên Route ở giữa đoạn đường để dễ nhìn (scale Lat/Lon offset to ~0.00008)
             if len(xs) > 1:
                 mid_idx = len(xs) // 2
-                ax.text(xs[mid_idx], ys[mid_idx] + 8, f" {route.id()} ", color='white', 
+                ax.text(xs[mid_idx], ys[mid_idx] + 0.00008, f" {route.id()} ", color='white', 
                         bbox=dict(facecolor=route_colors[i % len(route_colors)], edgecolor='none', boxstyle='round,pad=0.2'),
                         fontsize=10, weight='bold', zorder=6)
 
@@ -53,13 +53,12 @@ class VisualizeZoneAndTransitNetwork:
         # Làm nổi bật điểm dừng chung bằng chấm đen nhỏ ở chính giữa tâm
         ax.scatter(stops_x, stops_y, color='black', zorder=5, s=20, label='Mạng lưới Stops')
         
-        # Thêm mã Stop cạnh trạm
+        # Thêm mã Stop cạnh trạm (scale Lat/Lon offset ~ 0.00005)
         for stop in transit_network.get_stops():
-            ax.text(stop.coord().lat() + 5, stop.coord().lon() - 10, stop.id(), fontsize=8, color='black', weight='bold')
+            ax.text(stop.coord().lat() + 0.00005, stop.coord().lon() - 0.0001, stop.id(), fontsize=8, color='black', weight='bold')
 
-        ax.set_xlim(-20, 320)
-        ax.set_ylim(-20, 320)
-        ax.set_aspect('equal')
+        # Tự động scale
+        ax.set_aspect('equal', adjustable='datalim')
         ax.set_title("Chế mô phỏng: Transit Network 3x3 Grid", fontsize=16)
         
         # Sắp xếp legend không bị trùng lặp
@@ -68,7 +67,20 @@ class VisualizeZoneAndTransitNetwork:
         ax.legend(by_label.values(), by_label.keys(), bbox_to_anchor=(1.05, 1), loc='upper left')
         
         plt.grid(True, linestyle='--', alpha=0.6)
-        plt.tight_layout()
+        
+        # Thêm thông tin OD Pairs ở đáy
+        od_pairs = od_matrix.get_od_pairs()
+        od_lines = []
+        for i in range(0, len(od_pairs), 4):
+            chunk = od_pairs[i:i+4]
+            od_lines.append(" | ".join([f"{od.id()}: {od.origin_zone_id()} -> {od.destination_zone_id()}" for od in chunk]))
+        
+        od_text = "Danh sach OD Pairs:\n" + "\n".join(od_lines)
+        plt.figtext(0.5, 0.02, od_text, wrap=True, horizontalalignment='center', fontsize=10, 
+                    bbox=dict(facecolor='wheat', alpha=0.5, boxstyle='round,pad=0.5'))
+                    
+        # Dành chỗ trống bằng rect để figtext không bị đè
+        plt.tight_layout(rect=[0, 0.12, 1, 1])
         
         if save_path:
             plt.savefig(save_path, dpi=200)
