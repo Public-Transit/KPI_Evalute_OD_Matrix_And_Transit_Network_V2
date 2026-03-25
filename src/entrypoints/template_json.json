@@ -1,0 +1,30 @@
+{
+    "od_pair": "OD1",
+    "options": [
+        {
+            "candidate_routes": [
+                "Tuyến R1",
+                "Tuyến R2"
+            ],
+            "representative_trip": {
+                "routes": [
+                    "Tuyến R1",
+                    "Tuyến R2"
+                ],
+                "stops": [
+                    "Trạm A",
+                    "Trạm B",
+                    "Trạm C"
+                ]
+            },
+            "kpis": {
+                "transfer_kpi": {
+                    "score": 1
+                },
+                "circuity_kpi": {
+                    "score": 1.9
+                }
+            }
+        }
+    ]
+}

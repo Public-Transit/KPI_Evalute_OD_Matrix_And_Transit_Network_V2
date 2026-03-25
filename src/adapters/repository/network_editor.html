@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transit Network Pro Editor</title>
+    <!-- Leaflet & Geoman -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --sidebar-bg: rgba(30, 41, 59, 0.8);
+            --accent-color: #38bdf8;
+            --text-color: #f1f5f9;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        #app {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+
+        #map {
+            flex-grow: 1;
+            height: 100%;
+            zorder: 1;
+        }
+
+        /* Sidebar Glassmorphism */
+        #sidebar {
+            width: 400px;
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 24px;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            font-size: 13px;
+            opacity: 0.6;
+            margin-bottom: 32px;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-size: 11px;
+            font-weight: 600;
+            opacity: 0.5;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn {
+            background: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(56, 189, 248, 0.4);
+            filter: brightness(1.1);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-color);
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: none;
+        }
+
+        .element-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .element-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--glass-border);
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .element-item:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: var(--accent-color);
+        }
+
+        .id-badge {
+            font-family: monospace;
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .od-input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        input {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+        .leaflet-container {
+            background: #0b0f19 !important;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="sidebar">
+        <h1>NETWORK EDITOR <span style="font-weight: 300">PRO</span></h1>
+        <p class="subtitle">Interactive Transit Network Design Tool</p>
+
+        <div class="section">
+            <div class="section-title">Actions</div>
+            <button class="btn" onclick="exportPython()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Export Python Code
+            </button>
+            <button class="btn btn-secondary" onclick="exportJSON()">
+                Export JSON State
+            </button>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Manual Data Input</div>
+            <div id="od_list">
+                 <!-- OD Pairs added here -->
+            </div>
+            <button class="btn btn-secondary" onclick="addODPair()" style="padding: 6px; font-size: 12px;">+ Add OD Pair</button>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Stops <span id="stop_count">0</span></div>
+            <div class="element-list" id="stop_list"></div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Routes <span id="route_count">0</span></div>
+            <div class="element-list" id="route_list"></div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Zones <span id="zone_count">0</span></div>
+            <div class="element-list" id="zone_list"></div>
+        </div>
+    </div>
+    
+    <div id="map"></div>
+</div>
+
+<script>
+    // --- INITIAL DATA (Hardcoded from fake_reapository.py) ---
+    const BASE_LAT = 21.0;
+    const BASE_LON = 105.0;
+    const SCALE = 100000.0;
+
+    let network = {
+        stops: [
+            {id: "S00", lat: 21.0, lon: 105.0}, {id: "S10", lat: 21.001, lon: 105.0}, {id: "S20", lat: 21.002, lon: 105.0}, {id: "S30", lat: 21.003, lon: 105.0},
+            {id: "S01", lat: 21.0, lon: 105.001}, {id: "S11", lat: 21.001, lon: 105.001}, {id: "S21", lat: 21.002, lon: 105.001}, {id: "S31", lat: 21.003, lon: 105.001},
+            {id: "S02", lat: 21.0, lon: 105.002}, {id: "S12", lat: 21.001, lon: 105.002}, {id: "S22", lat: 21.002, lon: 105.002}, {id: "S32", lat: 21.003, lon: 105.002},
+            {id: "S03", lat: 21.0, lon: 105.003}, {id: "S13", lat: 21.001, lon: 105.003}, {id: "S23", lat: 21.002, lon: 105.003}, {id: "S33", lat: 21.003, lon: 105.003}
+        ],
+        zones: [
+            {id: "Z1", boundary: [{lat: 21.0, lon: 105.0}, {lat: 21.0015, lon: 105.0}, {lat: 21.0015, lon: 105.0015}, {lat: 21.0, lon: 105.0015}], centroid: {lat: 21.00075, lon: 105.00075}},
+            {id: "Z2", boundary: [{lat: 21.0015, lon: 105.0}, {lat: 21.003, lon: 105.0}, {lat: 21.003, lon: 105.0015}, {lat: 21.0015, lon: 105.0015}], centroid: {lat: 21.00225, lon: 105.00075}},
+            {id: "Z3", boundary: [{lat: 21.0, lon: 105.0015}, {lat: 21.0015, lon: 105.0015}, {lat: 21.0015, lon: 105.003}, {lat: 21.0, lon: 105.003}], centroid: {lat: 21.00075, lon: 105.00225}},
+            {id: "Z4", boundary: [{lat: 21.0015, lon: 105.0015}, {lat: 21.003, lon: 105.0015}, {lat: 21.003, lon: 105.003}, {lat: 21.0015, lon: 105.003}], centroid: {lat: 21.00225, lon: 105.00225}}
+        ],
+        routes: [
+            {id: "R1", shape: [{lat: 21.0, lon: 105.001}, {lat: 21.001, lon: 105.001}, {lat: 21.002, lon: 105.001}, {lat: 21.003, lon: 105.001}], stops_seq: ["S01", "S11", "S21", "S31"]},
+            {id: "R2", shape: [{lat: 21.002, lon: 105.0}, {lat: 21.002, lon: 105.001}, {lat: 21.002, lon: 105.002}, {lat: 21.002, lon: 105.003}], stops_seq: ["S20", "S21", "S22", "S23"]},
+            {id: "R3", shape: [{lat: 21.003, lon: 105.002}, {lat: 21.002, lon: 105.002}, {lat: 21.001, lon: 105.002}, {lat: 21.0, lon: 105.002}], stops_seq: ["S32", "S22", "S12", "S02"]},
+            {id: "R4", shape: [{lat: 21.0, lon: 105.002}, {lat: 21.0, lon: 105.003}, {lat: 21.001, lon: 105.003}], stops_seq: ["S02", "S03", "S13"]},
+            {id: "R5", shape: [{lat: 21.002, lon: 105.0}, {lat: 21.003, lon: 105.0}, {lat: 21.003, lon: 105.001}], stops_seq: ["S20", "S30", "S31"]}
+        ],
+        od_pairs: [
+            {id: "OD1", origin: "Z1", destination: "Z2", demand: 100},
+            {id: "OD2", origin: "Z1", destination: "Z4", demand: 100},
+            {id: "OD3", origin: "Z1", destination: "Z3", demand: 100},
+            {id: "OD4", origin: "Z2", destination: "Z3", demand: 100},
+            {id: "OD5", origin: "Z2", destination: "Z4", demand: 100},
+            {id: "OD6", origin: "Z3", destination: "Z4", demand: 100}
+        ]
+    };
+
+    // --- MAP SETUP ---
+    const map = L.map('map').setView([21.0015, 105.0015], 16);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap, © CartoDB'
+    }).addTo(map);
+
+    // --- GEOMAN SETUP ---
+    map.pm.addControls({
+        position: 'topleft',
+        drawMarker: true,
+        drawPolyline: true,
+        drawRectangle: true,
+        drawPolygon: true,
+        editMode: true,
+        dragMode: true,
+        removalMode: true,
+    });
+
+    const routeLayerGroup = L.layerGroup().addTo(map);
+    const stopLayerGroup = L.layerGroup().addTo(map);
+    const zoneLayerGroup = L.layerGroup().addTo(map);
+
+    // --- STATE MANAGEMENT ---
+    function updateSidebar() {
+        document.getElementById('stop_count').innerText = network.stops.length;
+        document.getElementById('route_count').innerText = network.routes.length;
+        document.getElementById('zone_count').innerText = network.zones.length;
+
+        const renderList = (id, list, badgeClass) => {
+            const el = document.getElementById(id);
+            el.innerHTML = '';
+            list.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'element-item';
+                div.innerHTML = `<span>${item.id}</span> <span class="id-badge">${item.id}</span>`;
+                el.appendChild(div);
+            });
+        };
+
+        renderList('stop_list', network.stops);
+        renderList('route_list', network.routes);
+        renderList('zone_list', network.zones);
+
+        // Render OD pairs
+        const odEl = document.getElementById('od_list');
+        odEl.innerHTML = '';
+        network.od_pairs.forEach((od, idx) => {
+            const div = document.createElement('div');
+            div.className = 'od-input-group';
+            div.innerHTML = `
+                <input type="text" value="${od.origin}" onchange="network.od_pairs[${idx}].origin=this.value" placeholder="Origin">
+                <input type="text" value="${od.destination}" onchange="network.od_pairs[${idx}].destination=this.value" placeholder="Dest">
+                <input type="number" value="${od.demand}" onchange="network.od_pairs[${idx}].demand=parseInt(this.value)" style="width: 50px;">
+            `;
+            odEl.appendChild(div);
+        });
+    }
+
+    function addODPair() {
+        network.od_pairs.push({id: `OD${network.od_pairs.length+1}`, origin: "Z1", destination: "Z2", demand: 100});
+        updateSidebar();
+    }
+
+    function drawNetwork() {
+        stopLayerGroup.clearLayers();
+        routeLayerGroup.clearLayers();
+        zoneLayerGroup.clearLayers();
+
+        // Draw Zones
+        network.zones.forEach(z => {
+            const poly = L.polygon(z.boundary.map(p => [p.lat, p.lon]), {
+                color: '#38bdf8', fillOpacity: 0.1, weight: 2
+            }).addTo(zoneLayerGroup);
+            poly.bindTooltip(`Zone: ${z.id}`);
+        });
+
+        // Draw Routes
+        network.routes.forEach(r => {
+            const poly = L.polyline(r.shape.map(p => [p.lat, p.lon]), {
+                color: '#818cf8', weight: 6, opacity: 0.8
+            }).addTo(routeLayerGroup);
+            poly.bindTooltip(`Route: ${r.id}`);
+        });
+
+        // Draw Stops
+        network.stops.forEach(s => {
+            const marker = L.circleMarker([s.lat, s.lon], {
+                radius: 6, fillColor: '#fff', color: '#000', weight: 2, fillOpacity: 1
+            }).addTo(stopLayerGroup);
+            marker.bindTooltip(`Stop: ${s.id}`);
+        });
+
+        updateSidebar();
+    }
+
+    // Handle map drawing events
+    map.on('pm:create', (e) => {
+        const shape = e.shape;
+        const layer = e.layer;
+
+        if (shape === 'Marker') {
+            const id = prompt("Enter Stop ID:", `S_NEW_${network.stops.length}`);
+            if (id) {
+                const ll = layer.getLatLng();
+                network.stops.push({id: id, lat: ll.lat, lon: ll.lng});
+            }
+        } else if (shape === 'Line') {
+            const id = prompt("Enter Route ID:", `R_NEW_${network.routes.length}`);
+            if (id) {
+                const lls = layer.getLatLngs();
+                const shape_pts = lls.map(ll => ({lat: ll.lat, lon: ll.lng}));
+                // Simple logic: associate with nearby stops or empty for now
+                network.routes.push({id: id, shape: shape_pts, stops_seq: []});
+            }
+        } else if (shape === 'Polygon' || shape === 'Rectangle') {
+            const id = prompt("Enter Zone ID:", `Z_NEW_${network.zones.length}`);
+            if (id) {
+                const lls = layer.getLatLngs()[0];
+                const boundary = lls.map(ll => ({lat: ll.lat, lon: ll.lng}));
+                const center = layer.getBounds().getCenter();
+                network.zones.push({id: id, boundary: boundary, centroid: {lat: center.lat, lon: center.lng}});
+            }
+        }
+        
+        map.removeLayer(layer); // Remove temp layer
+        drawNetwork(); // Redraw from state
+    });
+
+    // --- CODE GENERATOR ---
+    function exportPython() {
+        const repoName = prompt("Enter Repository Filename:", "my_custom_repository") || "custom_repo";
+        
+        const lines = [
+            "from typing import Tuple",
+            "from src.domain.model.point import Point",
+            "from src.domain.model.stop import Stop",
+            "from src.domain.model.route import Route",
+            "from src.domain.model.zone import Zone",
+            "from src.domain.model.od_pair import ODPair",
+            "from src.domain.model.trip import Trip",
+            "from src.domain.model.od_matrix import ODMatrix",
+            "from src.domain.model.transit_network import TransitNetwork",
+            "from src.adapters.repository.abstract_repository import AbstractRepository",
+            "",
+            `class ${repoName.charAt(0).toUpperCase() + repoName.slice(1)}Repository(AbstractRepository):`,
+            "    def __init__(self):",
+            "        # Generated by Transit Network Editor Pro",
+            "        self.stops = ["
+        ];
+
+        network.stops.forEach(s => {
+            lines.push(`            Stop('${s.id}', ${s.lat.toFixed(6)}, ${s.lon.toFixed(6)}),`);
+        });
+        lines.push("        ]\n");
+
+        lines.push("        self.zones = [");
+        network.zones.forEach(z => {
+            const pts = z.boundary.map(p => `Point(${p.lat.toFixed(6)}, ${p.lon.toFixed(6)})`).join(", ");
+            lines.push(`            Zone('${z.id}', [${pts}], Point(${z.centroid.lat.toFixed(6)}, ${z.centroid.lon.toFixed(6)})),`);
+        });
+        lines.push("        ]\n");
+
+        lines.push("        self.routes = [");
+        network.routes.forEach(r => {
+            const pts = r.shape.map(p => `Point(${p.lat.toFixed(6)}, ${p.lon.toFixed(6)})`).join(", ");
+            const stops = JSON.stringify(r.stops_seq);
+            lines.push(`            Route('${r.id}', [${pts}], ${stops}),`);
+        });
+        lines.push("        ]\n");
+
+        lines.push("        self.od_pairs = [");
+        network.od_pairs.forEach(od => {
+            lines.push(`            ODPair('${od.id}', '${od.origin}', '${od.destination}', ${od.demand}),`);
+        });
+        lines.push("        ]\n");
+
+        lines.push("        self.trips = []");
+
+        lines.push(`
+    def get(self, reference=None) -> Tuple[list[Stop], list[Route], list[Zone], list[ODPair], list[Trip]]:
+        return self.stops, self.routes, self.zones, self.od_pairs, self.trips
+        
+    def get_od_matrix(self) -> ODMatrix:
+        return ODMatrix(self.od_pairs, self.zones)
+        
+    def get_transit_network(self) -> TransitNetwork:
+        return TransitNetwork(self.stops, self.routes)
+        `);
+
+        const blob = new Blob([lines.join('\n')], {type: 'text/plain'});
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${repoName}.py`;
+        a.click();
+    }
+
+    function exportJSON() {
+        const blob = new Blob([JSON.stringify(network, null, 2)], {type: 'application/json'});
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `network_state.json`;
+        a.click();
+    }
+
+    // Initial draw
+    drawNetwork();
+</script>
+
+</body>
+</html>

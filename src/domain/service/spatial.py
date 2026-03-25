@@ -13,7 +13,7 @@ def find_all_routes_pass_through_zone(zone: Zone, transit_network: TransitNetwor
     """
     passing_routes = []
         
-    for route in transit_network.get_routes():
+    for route in transit_network.routes():
         for stop_id in route.stops_seq():
             stop = transit_network.get_stop_by_id(stop_id)
             if stop and zone.is_point_in_zone(stop.coord(), geometry_calculator):
@@ -69,7 +69,7 @@ def find_closest_stop_to_centroid(zone: Zone, transit_network: TransitNetwork, g
     min_dist = float('inf')
 
     zone_centroid_coord = zone.centroid()
-    stops = transit_network.get_stops()
+    stops = transit_network.stops()
 
     for stop in stops:
         if not stop: continue
