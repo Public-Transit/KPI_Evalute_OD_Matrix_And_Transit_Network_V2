@@ -8,12 +8,6 @@ from src.domain.model.stop import Stop
 from src.domain.model.point import Point
 from src.domain.port import IGeometryCalculator
 
-class AbstractCandidateTripFilterV2(ABC):
-    @abstractmethod
-    def filter(self, od_pair: ODPair, od_matrix: ODMatrix, transit_network: TransitNetwork, candidate_trip: CandidateTrip, geometry_calculator: IGeometryCalculator) -> Trip:
-        pass
-
-
 def _get_closest_stop(stop_ids: set[str], centroid: Point, transit_network: TransitNetwork, calc: IGeometryCalculator) -> Stop:
     best_stop = None
     min_dist = float('inf')
@@ -25,6 +19,17 @@ def _get_closest_stop(stop_ids: set[str], centroid: Point, transit_network: Tran
             min_dist = d
             best_stop = stop
     return best_stop
+
+
+class AbstractCandidateTripFilterV2(ABC):
+    @abstractmethod
+    def filter(self, od_pair: ODPair, od_matrix: ODMatrix, transit_network: TransitNetwork, candidate_trip: CandidateTrip, geometry_calculator: IGeometryCalculator) -> Trip:
+        pass
+
+class AbstractTripsFilterV2(ABC):
+    @abstractmethod
+    def filter(self, od_pair: ODPair, od_matrix: ODMatrix, transit_network: TransitNetwork, trips: list[Trip], geometry_calculator: IGeometryCalculator) -> Trip:
+        pass
 
 class MinDistanceCandidateTripFilterV2(AbstractCandidateTripFilterV2):
     '''
@@ -39,8 +44,8 @@ class MinDistanceCandidateTripFilterV2(AbstractCandidateTripFilterV2):
         origin_zone = od_matrix.get_zone_by_id(od_pair.origin_zone_id())
         dest_zone = od_matrix.get_zone_by_id(od_pair.destination_zone_id())
         
-        origin_centroid = origin_zone.centroid() if hasattr(origin_zone, 'centroid') else origin_zone.coord() if hasattr(origin_zone, 'coord') else None
-        dest_centroid = dest_zone.centroid() if hasattr(dest_zone, 'centroid') else dest_zone.coord() if hasattr(dest_zone, 'coord') else None
+        origin_centroid = origin_zone.centroid()
+        dest_centroid = dest_zone.centroid()
         
         if not origin_centroid or not dest_centroid:
             return None 
@@ -89,4 +94,5 @@ class MinDistanceCandidateTripFilterV2(AbstractCandidateTripFilterV2):
                 ])
                 
         return None
+
 
