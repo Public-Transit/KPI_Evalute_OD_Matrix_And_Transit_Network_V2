@@ -52,11 +52,39 @@ class MinDistanceCandidateTripFilterV2(AbstractCandidateTripFilterV2):
 
         if len(candidate_trip.candidate_legs) == 1:
             leg = candidate_trip.candidate_legs[0]
-            board_stop = _get_closest_stop(leg.possible_boarding_stop_ids, origin_centroid, transit_network, geometry_calculator)
-            alight_stop = _get_closest_stop(leg.possible_alighting_stop_ids, dest_centroid, transit_network, geometry_calculator)
+            route = transit_network.get_route_by_id(leg.route_id)
             
-            if board_stop and alight_stop:
-                return Trip([Leg(leg.route_id, board_stop.id(), alight_stop.id())])
+            best_pair = None
+            min_access_score = float('inf')
+            min_route_dist = float('inf')
+            
+            # Xét mọi cặp boarding/alighting có thể
+            for b_id in leg.possible_boarding_stop_ids:
+                b_stop = transit_network.get_stop_by_id(b_id)
+                if not b_stop: continue
+                
+                for a_id in leg.possible_alighting_stop_ids:
+                    a_stop = transit_network.get_stop_by_id(a_id)
+                    if not a_stop: continue
+                    
+                    # 1. Tiêu chí chính: Khoảng cách đi bộ (túi tiền thời gian)
+                    score = b_stop.coord().distance_to(origin_centroid, geometry_calculator) + \
+                            a_stop.coord().distance_to(dest_centroid, geometry_calculator)
+                    
+                    # 2. Tiêu chí phụ: Quãng đường trên tuyến
+                    route_dist = route.get_distance_between_two_stops(b_stop, a_stop, geometry_calculator)
+                    
+                    if score < min_access_score:
+                        min_access_score = score
+                        min_route_dist = route_dist
+                        best_pair = (b_id, a_id)
+                    elif score == min_access_score:
+                        if route_dist < min_route_dist:
+                            min_route_dist = route_dist
+                            best_pair = (b_id, a_id)
+            
+            if best_pair:
+                return Trip([Leg(leg.route_id, best_pair[0], best_pair[1])])
                 
         elif len(candidate_trip.candidate_legs) == 2:
             leg1 = candidate_trip.candidate_legs[0]

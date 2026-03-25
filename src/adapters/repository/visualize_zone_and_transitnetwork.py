@@ -13,7 +13,7 @@ class VisualizeZoneAndTransitNetwork:
         
         # 1. Vẽ các Zone
         colors = ['#ff9999', '#99ff99', '#9999ff', '#ffff99']
-        for i, zone in enumerate(od_matrix.get_zones()):
+        for i, zone in enumerate(od_matrix.zones()):
             boundary = zone.boundary()
             xs = [p.lat() for p in boundary]  # Hệ toạ độ xy với lat=x, lon=y
             ys = [p.lon() for p in boundary]
@@ -29,7 +29,7 @@ class VisualizeZoneAndTransitNetwork:
 
         # 2. Vẽ Transit Network (Routes)
         route_colors = ['red', 'blue', 'green', 'magenta', 'purple']
-        for i, route in enumerate(transit_network.get_routes()):
+        for i, route in enumerate(transit_network.routes()):
             shape = route.shape()
             xs = [p.lat() for p in shape]
             ys = [p.lon() for p in shape]
@@ -48,13 +48,13 @@ class VisualizeZoneAndTransitNetwork:
                         fontsize=10, weight='bold', zorder=6)
 
         # 3. Vẽ danh sách Stops chung của hệ thống
-        stops_x = [stop.coord().lat() for stop in transit_network.get_stops()]
-        stops_y = [stop.coord().lon() for stop in transit_network.get_stops()]
+        stops_x = [stop.coord().lat() for stop in transit_network.stops()]
+        stops_y = [stop.coord().lon() for stop in transit_network.stops()]
         # Làm nổi bật điểm dừng chung bằng chấm đen nhỏ ở chính giữa tâm
         ax.scatter(stops_x, stops_y, color='black', zorder=5, s=20, label='Mạng lưới Stops')
         
         # Thêm mã Stop cạnh trạm (scale Lat/Lon offset ~ 0.00005)
-        for stop in transit_network.get_stops():
+        for stop in transit_network.stops():
             ax.text(stop.coord().lat() + 0.00005, stop.coord().lon() - 0.0001, stop.id(), fontsize=8, color='black', weight='bold')
 
         # Tự động scale
@@ -69,7 +69,7 @@ class VisualizeZoneAndTransitNetwork:
         plt.grid(True, linestyle='--', alpha=0.6)
         
         # Thêm thông tin OD Pairs ở đáy
-        od_pairs = od_matrix.get_od_pairs()
+        od_pairs = od_matrix.od_pairs()
         od_lines = []
         for i in range(0, len(od_pairs), 4):
             chunk = od_pairs[i:i+4]
