@@ -7,7 +7,9 @@ from src.domain.model.route import Route
 from src.domain.model.transit_network import TransitNetwork
 from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.od_pair import ODPair
-from tests.domain.mock_geometry import MockGeometryCalculator
+from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
+
+
 
 @pytest.fixture
 def routing_data():
@@ -34,7 +36,8 @@ def routing_data():
 
 def test_direct_connection_routing(routing_data):
     od1, matrix, tn = routing_data
-    calc = MockGeometryCalculator()
+    calc = ShapelyGeometryCalculator
+()
     router = DirectConnectionRouting()
     
     trips = router.find_candidate_trips_for_od_pair(od1, matrix, tn, calc)
@@ -42,7 +45,8 @@ def test_direct_connection_routing(routing_data):
 
 def test_one_transfer_routing(routing_data):
     od1, matrix, tn = routing_data
-    calc = MockGeometryCalculator()
+    calc = ShapelyGeometryCalculator
+()
     router = OneTransferRoutingEngine()
     
     trips = router.find_candidate_trips_for_od_pair(od1, matrix, tn, calc)

@@ -1,6 +1,8 @@
 import pytest
 from src.domain.model.point import Point
-from tests.domain.mock_geometry import MockGeometryCalculator
+from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
+
+
 
 def test_point_creation():
     p = Point(21.0, 105.0)
@@ -10,6 +12,6 @@ def test_point_creation():
 def test_point_distance_to():
     p1 = Point(0.0, 0.0)
     p2 = Point(0.0, 1.0)
-    calc = MockGeometryCalculator()
+    calc = ShapelyGeometryCalculator()
     dist = p1.distance_to(p2, calc)
     assert dist > 0

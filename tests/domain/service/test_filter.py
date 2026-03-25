@@ -9,7 +9,9 @@ from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.od_pair import ODPair
 from src.domain.model.trip import CandidateTrip
 from src.domain.model.leg import CandidateLeg
-from tests.domain.mock_geometry import MockGeometryCalculator
+from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
+
+
 
 def test_filter_strategy_0_transfer():
     p1 = Point(1, 1)
@@ -26,7 +28,8 @@ def test_filter_strategy_0_transfer():
     
     ct = CandidateTrip([CandidateLeg("R1", {"S1"}, {"S2"})])
     
-    calc = MockGeometryCalculator()
+    calc = ShapelyGeometryCalculator
+()
     f = MinDistanceCandidateTripFilter()
     
     res_trip = f.filter(od1, matrix, tn, [ct], calc)

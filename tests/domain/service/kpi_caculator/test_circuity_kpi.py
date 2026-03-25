@@ -7,7 +7,9 @@ from src.domain.model.point import Point
 from src.domain.model.stop import Stop
 from src.domain.model.route import Route
 from src.domain.model.transit_network import TransitNetwork
-from tests.domain.mock_geometry import MockGeometryCalculator
+from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
+
+
 
 def test_circuity_index_calculator():
     calc = CircuityIndexCalculator()
@@ -19,7 +21,8 @@ def test_circuity_index_calculator():
     r1 = Route("R1", [p1, p2], ["S1", "S2"])
     tn = TransitNetwork([s1, s2], [r1])
     
-    geometry_calc = MockGeometryCalculator()
+    geometry_calc = ShapelyGeometryCalculator
+()
     
     pt = Trip([Leg("R1", "S1", "S2")])
     res = ODRoutingResult("OD1", CandidateTrip([]), pt)

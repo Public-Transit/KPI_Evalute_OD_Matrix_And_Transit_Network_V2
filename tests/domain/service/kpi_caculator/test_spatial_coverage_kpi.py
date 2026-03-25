@@ -9,7 +9,9 @@ from src.domain.model.transit_network import TransitNetwork
 from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.od_pair import ODPair
 from src.domain.model.zone import Zone
-from tests.domain.mock_geometry import MockGeometryCalculator
+from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
+
+
 
 def test_spatial_coverage_calculator():
     calc = SpatialCoverageCalculator()
@@ -25,7 +27,8 @@ def test_spatial_coverage_calculator():
     od1 = ODPair("OD1", "Z1", "Z2", 10)
     matrix = ODMatrix([od1], [z1, z2])
     
-    geometry_calc = MockGeometryCalculator()
+    geometry_calc = ShapelyGeometryCalculator
+()
     
     pt = Trip([Leg("R1", "S1", "S2")])
     res = ODRoutingResult("OD1", CandidateTrip([]), pt)
