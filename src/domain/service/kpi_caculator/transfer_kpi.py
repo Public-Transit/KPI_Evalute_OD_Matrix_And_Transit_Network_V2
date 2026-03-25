@@ -1,23 +1,24 @@
 from src.domain.service.kpi_caculator.kpi_base import KPICalculator
-from src.domain.model.routing_result import ODRoutingResult
+from src.domain.model.routing_result_v2 import EvaluatedRoutingOption
+from src.domain.model.trip import Trip
 
 class TransferRateCalculator(KPICalculator):
-    def calculate(self, routing_result: ODRoutingResult, **kwargs) -> dict:
+    def calculate(self, evaluated_routing_option: EvaluatedRoutingOption, **kwargs) -> dict:
         """
-        Tính toán KPI về số lần chuyển tuyến (0 hoặc 1).
+        Tính toán KPI về số lần chuyển tuyến (0 hoặc 1) của chuyến đi đại diện trong 1 phương án di chuyển.
         
         Args:
-            routing_result (ODRoutingResult): Kết quả tìm đường
+            evaluated_routing_option (EvaluatedRoutingOption): Phương án di chuyển
             
         Returns:
             dict: Chứa điểm (0 cho đi thẳng, 1 cho 1 lần đổi xe, hoặc "Not valid" nếu lớn hơn)
         """
-        present_trip = routing_result.present_trip()
+        representative_trip: Trip = evaluated_routing_option.representative_trip()
         
-        if not present_trip or not present_trip.legs:
+        if not representative_trip or not representative_trip.legs:
             return {"score": "Not valid or >1", "reason": "No valid trip"}
             
-        total_legs = len(present_trip.legs)
+        total_legs = len(representative_trip.legs)
         total_transfers = total_legs - 1
         
         if total_transfers == 0:

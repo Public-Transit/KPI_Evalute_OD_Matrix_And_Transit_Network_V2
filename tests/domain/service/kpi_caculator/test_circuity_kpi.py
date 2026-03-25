@@ -1,6 +1,6 @@
 import pytest
 from src.domain.service.kpi_caculator.circuity_kpi import CircuityIndexCalculator
-from src.domain.model.routing_result import ODRoutingResult
+from src.domain.model.routing_result_v2 import EvaluatedRoutingOption
 from src.domain.model.trip import CandidateTrip, Trip
 from src.domain.model.leg import Leg
 from src.domain.model.point import Point
@@ -21,11 +21,10 @@ def test_circuity_index_calculator():
     r1 = Route("R1", [p1, p2], ["S1", "S2"])
     tn = TransitNetwork([s1, s2], [r1])
     
-    geometry_calc = ShapelyGeometryCalculator
-()
+    geometry_calc = ShapelyGeometryCalculator()
     
     pt = Trip([Leg("R1", "S1", "S2")])
-    res = ODRoutingResult("OD1", CandidateTrip([]), pt)
+    res = EvaluatedRoutingOption(CandidateTrip([]), pt)
     
     kpi_res = calc.calculate(res, transit_network=tn, geometry_calculator=geometry_calc)
     
