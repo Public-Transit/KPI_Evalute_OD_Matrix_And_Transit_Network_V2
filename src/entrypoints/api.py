@@ -148,3 +148,45 @@ def full_v2_calculate_kpi_all_od_pairs():
         return {"status": "success", "data": json_results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/routes/v2/feasible-trips")
+def get_all_feasible_trips_v2():
+    """
+    Endpoint in ra các cặp OD kèm các trips khả thi dựa trên bộ lọc V2 (MinDistanceCandidateTripFilterV2).
+    """
+    from src.domain.service.filter_v2 import MinDistanceCandidateTripFilterV2
+    
+    repo = FakeRepository()
+    uow = DummyUnitOfWork(repo)
+    routing_engine = CombinedRoutingEngine()
+    filter_engine_v2 = MinDistanceCandidateTripFilterV2()
+    geo_calc = ShapelyGeometryCalculator()
+    
+    try:
+        results = routing_services.batch_route_all_od_pairs_v2(routing_engine, filter_engine_v2, uow, geo_calc, DEFAULT_REFERENCE_PATH)
+        
+        json_results = []
+        for r in results:
+            trips_data = []
+            if r.candidate_trips():
+                for ct in r.candidate_trips():
+                    legs_str = " -> ".join([f"Tuyến {leg.route_id}" for leg in ct.candidate_legs])
+                    trips_data.append(legs_str)
+                    
+            feasible_trips_data = []
+            if r.present_trips():
+                for pt in r.present_trips():
+                    pt_str = " ==> ".join([f"[{leg.route_id}] từ {leg.board_stop_id} đến {leg.alight_stop_id}" for leg in pt.legs])
+                    feasible_trips_data.append(pt_str)
+                    
+            json_results.append({
+                "od_pair": r.od_pair_id(),
+                "total_candidate_paths": len(r.candidate_trips()),
+                "all_candidate_paths": trips_data,
+                "total_feasible_trips": len(r.present_trips()),
+                "all_feasible_trips": feasible_trips_data
+            })
+            
+        return {"status": "success", "data": json_results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

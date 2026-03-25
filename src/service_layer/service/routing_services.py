@@ -8,6 +8,9 @@ from src.domain.model.transit_network import TransitNetwork
 from src.domain.port import IGeometryCalculator
 from src.domain.model.od_matrix import ODMatrix
 
+from src.domain.service.filter_v2 import AbstractCandidateTripFilterV2
+from src.domain.model.routing_result_v2 import ODRoutingResultV2
+
 def batch_route_all_od_pairs(routing_engine: AbstractRouting, filter_engine: AbstractCandidateTripFilter, uow: AbstractUnitOfWork, geo_calc: IGeometryCalculator, reference_path: str) -> list[ODRoutingResult]:
     """
     Application Service để đọc toàn bộ OD Matrix và định tuyến bằng Transit Network.
@@ -75,4 +78,29 @@ def calculate_impact_of_route_change(route_id: str, new_stops: list[str], routin
             results.append(ODRoutingResult(od_pair.id(), candidate_trips, None))
             
     # Lưu ý: Không gọi uow.commit() để không lưu sự thay đổi này xuống DB!
+    return results
+
+def batch_route_all_od_pairs_v2(routing_engine: AbstractRouting, filter_engine_v2: AbstractCandidateTripFilterV2, uow: AbstractUnitOfWork, geo_calc: IGeometryCalculator, reference_path: str) -> list[ODRoutingResultV2]:
+    """
+    Application Service V2: Áp dụng Filter V2 cho từng CandidateTrip. Trả về tất cả các Present Trips.
+    """
+    results = []
+    
+    with uow:
+        # Lấy data từ Repo
+        stops, routes, zones, od_pairs, trips = uow.repo.get(reference_path)
+        transit_network = TransitNetwork(stops, routes)
+        od_matrix = ODMatrix(od_pairs, zones)
+        
+        for od_pair in od_pairs:
+            candidate_trips = routing_engine.find_candidate_trips_for_od_pair(od_pair, od_matrix, transit_network, geo_calc)
+            
+            present_trips = []
+            for ct in candidate_trips:
+                trip = filter_engine_v2.filter(od_pair, od_matrix, transit_network, ct, geo_calc)
+                if trip:
+                    present_trips.append(trip)
+            
+            results.append(ODRoutingResultV2(od_pair.id(), candidate_trips, present_trips))
+            
     return results
