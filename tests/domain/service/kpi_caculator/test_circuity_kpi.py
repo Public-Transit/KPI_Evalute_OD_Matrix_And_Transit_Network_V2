@@ -1,6 +1,6 @@
 import pytest
 from src.domain.service.kpi_caculator.circuity_kpi import CircuityIndexCalculator
-from src.domain.model.routing_result_v2 import EvaluatedRoutingOption
+from src.domain.model.routing_result import EvaluatedRoutingOption
 from src.domain.model.trip import CandidateTrip, Trip
 from src.domain.model.leg import Leg
 from src.domain.model.point import Point

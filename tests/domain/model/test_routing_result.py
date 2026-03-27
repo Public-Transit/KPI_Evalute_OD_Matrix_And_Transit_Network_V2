@@ -1,5 +1,5 @@
 import pytest
-from src.domain.model.routing_result_v2 import ODRoutingResultV2, EvaluatedRoutingOption
+from src.domain.model.routing_result import ODRoutingResultV2, EvaluatedRoutingOption
 from src.domain.model.trip import Trip, CandidateTrip
 from src.domain.model.leg import Leg, CandidateLeg
 

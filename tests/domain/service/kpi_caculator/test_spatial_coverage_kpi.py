@@ -5,7 +5,7 @@ from src.domain.model.leg import CandidateLeg
 from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.od_pair import ODPair
 from src.domain.model.point import Point
-from src.domain.model.routing_result_v2 import EvaluatedRoutingOption
+from src.domain.model.routing_result import EvaluatedRoutingOption
 from src.domain.model.stop import Stop
 from src.domain.model.transit_network import TransitNetwork
 from src.domain.model.trip import CandidateTrip, Trip

@@ -10,7 +10,7 @@ from src.adapters.repository.fake_repo_off2 import FakeRepoOff2
 from src.adapters.repository.visualize_zone_and_transitnetwork import VisualizeZoneAndTransitNetwork
 
 from src.domain.service.routing import CombinedRoutingEngine
-from src.domain.service.filter_v2 import MinDistanceCandidateTripFilterV2
+from src.domain.service.filter import MinDistanceCandidateTripFilterV2
 from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
 
 def main():

@@ -13,7 +13,7 @@ from src.adapters.repository.fake_repo_f5 import FakeRepoF5
 from src.adapters.repository.visualize_zone_and_transitnetwork import VisualizeZoneAndTransitNetwork
 
 from src.domain.service.routing import CombinedRoutingEngine
-from src.domain.service.filter_v2 import MinDistanceCandidateTripFilterV2
+from src.domain.service.filter import MinDistanceCandidateTripFilterV2
 from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
 
 def main():
@@ -52,7 +52,7 @@ def main():
             print("  Không tìm thấy CandidateTrip nào!")
             continue
             
-        # 2. Lọc Trip thực tế dựa vào filter_v2.py
+        # 2. Lọc Trip thực tế dựa vào filter.py
         # Lưu ý: script test chỉ lấy Candidate đầu tiên để filter thử
         filtered_trip = filter_engine.filter(od_pair, od_matrix, transit_network, raw_candidates[0], calc)
         

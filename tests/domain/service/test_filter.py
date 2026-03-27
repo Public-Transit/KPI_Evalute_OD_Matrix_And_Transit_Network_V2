@@ -1,5 +1,5 @@
 import pytest
-from src.domain.service.filter_v2 import MinDistanceCandidateTripFilterV2
+from src.domain.service.filter import MinDistanceCandidateTripFilterV2
 from src.domain.model.point import Point
 from src.domain.model.zone import Zone
 from src.domain.model.stop import Stop

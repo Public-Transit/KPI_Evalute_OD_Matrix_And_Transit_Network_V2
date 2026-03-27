@@ -1,11 +1,11 @@
 from src.domain.model.od_pair import ODPair
 from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.transit_network import TransitNetwork
-from src.domain.model.routing_result_v2 import ODRoutingResultV2, EvaluatedRoutingOption
+from src.domain.model.routing_result import ODRoutingResultV2, EvaluatedRoutingOption
 from src.domain.port import IGeometryCalculator
 from src.domain.model.trip import CandidateTrip, Trip
 from src.domain.service.routing import AbstractRouting
-from src.domain.service.filter_v2 import AbstractCandidateTripFilterV2
+from src.domain.service.filter import AbstractCandidateTripFilterV2
 
 class GenerateODRoutingResultService:
     def __init__(self, routing_method: AbstractRouting, candidate_trip_filter: AbstractCandidateTripFilterV2):

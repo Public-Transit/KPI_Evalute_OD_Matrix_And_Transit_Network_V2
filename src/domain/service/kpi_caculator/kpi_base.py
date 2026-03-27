@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any
-from src.domain.model.routing_result_v2 import EvaluatedRoutingOption
+from src.domain.model.routing_result import EvaluatedRoutingOption
 
 class KPICalculator(ABC):
     @abstractmethod

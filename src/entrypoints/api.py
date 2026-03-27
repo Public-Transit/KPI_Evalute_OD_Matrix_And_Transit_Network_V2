@@ -14,7 +14,7 @@ from src.domain.model.od_matrix import ODMatrix
 from src.domain.service.kpi_caculator.circuity_kpi import CircuityIndexCalculator
 from src.domain.service.kpi_caculator.spatial_coverage_kpi import SpatialCoverageCalculator
 from src.domain.service.kpi_caculator.transfer_kpi import TransferRateCalculator
-from src.domain.service.filter_v2 import MinDistanceCandidateTripFilterV2
+from src.domain.service.filter import MinDistanceCandidateTripFilterV2
 
 
 from src.adapters.repository.fake_repo_l1 import FakeRepoL1

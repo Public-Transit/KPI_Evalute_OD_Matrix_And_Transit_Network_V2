@@ -1,7 +1,7 @@
 from typing import Any
 
 from src.domain.model.od_matrix import ODMatrix
-from src.domain.model.routing_result_v2 import EvaluatedRoutingOption
+from src.domain.model.routing_result import EvaluatedRoutingOption
 from src.domain.model.transit_network import TransitNetwork
 from src.domain.port import IGeometryCalculator
 from src.domain.service.kpi_caculator.kpi_base import KPICalculator

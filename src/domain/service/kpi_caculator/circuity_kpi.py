@@ -1,6 +1,6 @@
 from typing import Any
 from src.domain.service.kpi_caculator.kpi_base import KPICalculator
-from src.domain.model.routing_result_v2 import EvaluatedRoutingOption
+from src.domain.model.routing_result import EvaluatedRoutingOption
 from src.domain.model.transit_network import TransitNetwork
 from src.domain.service.spatial import find_cricuity_index_of_a_trip
 from src.domain.port import IGeometryCalculator

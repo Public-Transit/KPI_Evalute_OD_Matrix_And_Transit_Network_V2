@@ -1,10 +1,10 @@
 import pytest
 from src.domain.service.generate_od_routing_result import GenerateODRoutingResultService
 from src.domain.service.routing import AbstractRouting
-from src.domain.service.filter_v2 import AbstractCandidateTripFilterV2
+from src.domain.service.filter import AbstractCandidateTripFilterV2
 from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.transit_network import TransitNetwork
-from src.domain.model.routing_result_v2 import ODRoutingResultV2
+from src.domain.model.routing_result import ODRoutingResultV2
 from src.domain.model.trip import CandidateTrip, Trip
 from src.domain.model.leg import CandidateLeg, Leg
 from src.domain.model.point import Point

@@ -1,5 +1,5 @@
 from src.domain.service.kpi_caculator.kpi_base import KPICalculator
-from src.domain.model.routing_result_v2 import EvaluatedRoutingOption
+from src.domain.model.routing_result import EvaluatedRoutingOption
 from src.domain.model.trip import Trip
 
 class TransferRateCalculator(KPICalculator):
