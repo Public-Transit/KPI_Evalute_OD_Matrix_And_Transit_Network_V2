@@ -4,14 +4,28 @@ from pydantic import BaseModel
 
 from src.service_layer.unit_of_work import DummyUnitOfWork
 from src.adapters.repository.fake_reapository import FakeRepository
+from src.adapters.repository.visualize_zone_and_transitnetwork import VisualizeZoneAndTransitNetwork
 from src.domain.service.routing import CombinedRoutingEngine
 from src.service_layer.service import routing_services
-from src.domain.service.filter import MinDistanceCandidateTripFilter
+
 from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
 from src.domain.model.transit_network import TransitNetwork
 from src.domain.model.od_matrix import ODMatrix
 from src.domain.service.kpi_caculator import TransferRateCalculator, CircuityIndexCalculator
 from src.domain.service.filter_v2 import MinDistanceCandidateTripFilterV2
+
+
+from src.adapters.repository.fake_repo_l1 import FakeRepoL1
+from src.adapters.repository.fake_repo_l2 import FakeRepoL2
+from src.adapters.repository.fake_repo_l3 import FakeRepoL3
+from src.adapters.repository.fake_repo_l4 import FakeRepoL4
+from src.adapters.repository.fake_repo_l5 import FakeRepoL5
+from src.adapters.repository.fake_repo_f1 import FakeRepoF1
+from src.adapters.repository.fake_repo_f2 import FakeRepoF2
+from src.adapters.repository.fake_repo_f3 import FakeRepoF3
+from src.adapters.repository.fake_repo_f4 import FakeRepoF4
+from src.adapters.repository.fake_repo_f5 import FakeRepoF5
+
 
 app = FastAPI(title="Transit Network KPI API", description="API định tuyến và đánh giá KPI mạng lưới giao thông")
 
@@ -30,7 +44,7 @@ def calculate_kpi_all_od_pairs():
     """
     Tính toàn bộ các chỉ số KPI bằng KPI Calculator sau khi tìm đường qua GenerateODRoutingResultService.
     """
-    repo = FakeRepository()
+    repo = FakeRepoL4()
     uow = DummyUnitOfWork(repo)
     routing_engine = CombinedRoutingEngine()
     filter_engine = MinDistanceCandidateTripFilterV2()

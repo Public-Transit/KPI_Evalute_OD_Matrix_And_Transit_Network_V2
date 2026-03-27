@@ -74,11 +74,11 @@ class MinDistanceCandidateTripFilterV2(AbstractCandidateTripFilterV2):
                     # 2. Tiêu chí phụ: Quãng đường trên tuyến
                     route_dist = route.get_distance_between_two_stops(b_stop, a_stop, geometry_calculator)
                     
-                    if score < min_access_score:
+                    if score < min_access_score - 1e-4: # Tolerance 0.1mm
                         min_access_score = score
                         min_route_dist = route_dist
                         best_pair = (b_id, a_id)
-                    elif score == min_access_score:
+                    elif abs(score - min_access_score) <= 1e-4:
                         if route_dist < min_route_dist:
                             min_route_dist = route_dist
                             best_pair = (b_id, a_id)

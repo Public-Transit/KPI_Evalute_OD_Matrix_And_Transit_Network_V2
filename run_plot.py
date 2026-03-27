@@ -5,11 +5,11 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # from src.adapters.repository.fake_reapository import FakeRepository
-from src.adapters.repository.complex_test_repository import ComplexTestRepository
+from src.adapters.repository.fake_reapository2 import FakeRepository2
 from src.adapters.repository.visualize_zone_and_transitnetwork import VisualizeZoneAndTransitNetwork
 
 def main():
-    repo = ComplexTestRepository()
+    repo = FakeRepository2()
     od_matrix = repo.get_od_matrix()
     transit_network = repo.get_transit_network()
     

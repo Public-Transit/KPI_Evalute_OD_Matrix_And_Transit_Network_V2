@@ -9,6 +9,14 @@ class VisualizeZoneAndTransitNetwork:
         pass
     
     def show(self, od_matrix: ODMatrix, transit_network: TransitNetwork, save_path=None):
+        # ==========================================
+        # CẤU HÌNH HIỂN THỊ (Sửa True/False để bật/tắt)
+        # ==========================================
+        SHOW_ZONE_LABELS = False
+        SHOW_ROUTE_LABELS = False
+        SHOW_STOP_LABELS = True
+        # ==========================================
+
         fig, ax = plt.subplots(figsize=(10, 10))
         
         # 1. Vẽ các Zone
@@ -23,9 +31,10 @@ class VisualizeZoneAndTransitNetwork:
                                       edgecolor='black', alpha=0.5, label=f'Zone {zone.id()}')
             ax.add_patch(polygon)
             
-            centroid = zone.centroid()
-            ax.text(centroid.lat(), centroid.lon(), f'Zone {zone.id()}', 
-                    fontsize=14, ha='center', va='center', weight='bold')
+            if SHOW_ZONE_LABELS:
+                centroid = zone.centroid()
+                ax.text(centroid.lat(), centroid.lon(), f'Zone {zone.id()}', 
+                        fontsize=14, ha='center', va='center', weight='bold', zorder=3)
 
         # 2. Vẽ Transit Network (Routes)
         route_colors = ['red', 'blue', 'green', 'magenta', 'purple']
@@ -41,7 +50,7 @@ class VisualizeZoneAndTransitNetwork:
                     label=route.id(), zorder=4)
             
             # Điền tên Route ở giữa đoạn đường để dễ nhìn (scale Lat/Lon offset to ~0.00008)
-            if len(xs) > 1:
+            if SHOW_ROUTE_LABELS and len(xs) > 1:
                 mid_idx = len(xs) // 2
                 ax.text(xs[mid_idx], ys[mid_idx] + 0.00008, f" {route.id()} ", color='white', 
                         bbox=dict(facecolor=route_colors[i % len(route_colors)], edgecolor='none', boxstyle='round,pad=0.2'),
@@ -54,8 +63,11 @@ class VisualizeZoneAndTransitNetwork:
         ax.scatter(stops_x, stops_y, color='black', zorder=5, s=20, label='Mạng lưới Stops')
         
         # Thêm mã Stop cạnh trạm (scale Lat/Lon offset ~ 0.00005)
-        for stop in transit_network.stops():
-            ax.text(stop.coord().lat() + 0.00005, stop.coord().lon() - 0.0001, stop.id(), fontsize=8, color='black', weight='bold')
+        if SHOW_STOP_LABELS:
+            for stop in transit_network.stops():
+                # Set zorder=10 để Stop Text luôn nằm trên cùng, không bị đè
+                ax.text(stop.coord().lat() + 0.00005, stop.coord().lon() - 0.0001, stop.id(), 
+                        fontsize=8, color='black', weight='bold', zorder=10)
 
         # Tự động scale
         ax.set_aspect('equal', adjustable='datalim')

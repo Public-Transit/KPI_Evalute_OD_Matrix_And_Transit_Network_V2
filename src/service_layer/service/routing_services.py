@@ -1,8 +1,7 @@
 # src/service_layer/service/routing_services.py
 from src.service_layer.unit_of_work import AbstractUnitOfWork
 from src.domain.service.routing import AbstractRouting
-from src.domain.service.filter import AbstractCandidateTripFilter
-from src.domain.model.routing_result import ODRoutingResult
+
 from src.domain.model.route import Route
 from src.domain.model.transit_network import TransitNetwork
 from src.domain.port import IGeometryCalculator
