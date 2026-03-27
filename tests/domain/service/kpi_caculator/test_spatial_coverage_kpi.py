@@ -5,10 +5,10 @@ from src.domain.model.leg import CandidateLeg
 from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.od_pair import ODPair
 from src.domain.model.point import Point
-from src.domain.model.routing_result import ODRoutingResult
+from src.domain.model.routing_result_v2 import EvaluatedRoutingOption
 from src.domain.model.stop import Stop
 from src.domain.model.transit_network import TransitNetwork
-from src.domain.model.trip import CandidateTrip
+from src.domain.model.trip import CandidateTrip, Trip
 from src.domain.model.zone import Zone
 from src.domain.service.kpi_caculator.spatial_coverage_kpi import SpatialCoverageCalculator
 from tests.domain.mock_geometry import MockGeometryCalculator
@@ -32,15 +32,16 @@ def test_spatial_coverage_calculator_uses_candidate_trip_endpoints():
     od1 = ODPair("OD1", "Z1", "Z2", 10)
     od_matrix = ODMatrix([od1], [z1, z2])
 
-    ct1 = CandidateTrip([CandidateLeg("R1", {"S1", "S2"}, {"S3"})])
-    ct2 = CandidateTrip([
+    candidate_trip = CandidateTrip([
+        CandidateLeg("R1", {"S1", "S2"}, {"S5"}),
         CandidateLeg("R2", {"S2"}, {"S5"}),
-        CandidateLeg("R3", {"S5"}, {"S4"}),
+        CandidateLeg("R3", {"S5"}, {"S3", "S4"}),
     ])
-    routing_result = ODRoutingResult("OD1", [ct1, ct2], None)
+    evaluated_option = EvaluatedRoutingOption(candidate_trip, Trip([]))
 
     kpi_res = calc.calculate(
-        routing_result,
+        evaluated_option,
+        od_pair_id="OD1",
         od_matrix=od_matrix,
         transit_network=transit_network,
         geometry_calculator=MockGeometryCalculator(),
@@ -51,7 +52,9 @@ def test_spatial_coverage_calculator_uses_candidate_trip_endpoints():
     assert kpi_res["origin_coverage_ratio"] == 0.5
     assert kpi_res["destination_coverage_ratio"] == 0.5
     assert kpi_res["score_ratio"] == 0.25
-    assert kpi_res["score_percent"] == 25.0
+    assert "score_percent" not in kpi_res
+    assert "origin_coverage_percent" not in kpi_res
+    assert "destination_coverage_percent" not in kpi_res
 
     # Validate that endpoints are collected from candidate trips as expected.
     assert kpi_res["origin_stop_count"] == 2  # S1, S2
@@ -66,10 +69,11 @@ def test_spatial_coverage_calculator_returns_zero_when_no_candidate_trip():
     od1 = ODPair("OD1", "Z1", "Z2", 10)
     od_matrix = ODMatrix([od1], [z1, z2])
 
-    routing_result = ODRoutingResult("OD1", [], None)
+    evaluated_option = EvaluatedRoutingOption(CandidateTrip([]), Trip([]))
 
     kpi_res = calc.calculate(
-        routing_result,
+        evaluated_option,
+        od_pair_id="OD1",
         od_matrix=od_matrix,
         transit_network=transit_network,
         geometry_calculator=MockGeometryCalculator(),
@@ -77,7 +81,9 @@ def test_spatial_coverage_calculator_returns_zero_when_no_candidate_trip():
     )
 
     assert kpi_res["score_ratio"] == 0.0
-    assert kpi_res["score_percent"] == 0.0
+    assert "score_percent" not in kpi_res
+    assert "origin_coverage_percent" not in kpi_res
+    assert "destination_coverage_percent" not in kpi_res
     assert kpi_res["origin_stop_count"] == 0
     assert kpi_res["destination_stop_count"] == 0
 

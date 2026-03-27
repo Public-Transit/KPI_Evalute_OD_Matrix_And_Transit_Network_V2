@@ -23,6 +23,16 @@
                 },
                 "circuity_kpi": {
                     "score": 1.9
+                },
+                "spatial_coverage_kpi": {
+                    "score_ratio": 0.25,
+                    "origin_coverage_ratio": 0.5,
+                    "destination_coverage_ratio": 0.5,
+                    "origin_zone_id": "Z1",
+                    "destination_zone_id": "Z2",
+                    "radius_m": 500.0,
+                    "origin_stop_count": 2,
+                    "destination_stop_count": 2
                 }
             }
         }

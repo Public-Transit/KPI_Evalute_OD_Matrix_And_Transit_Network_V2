@@ -11,7 +11,9 @@ from src.service_layer.service import routing_services
 from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
 from src.domain.model.transit_network import TransitNetwork
 from src.domain.model.od_matrix import ODMatrix
-from src.domain.service.kpi_caculator import TransferRateCalculator, CircuityIndexCalculator
+from src.domain.service.kpi_caculator.circuity_kpi import CircuityIndexCalculator
+from src.domain.service.kpi_caculator.spatial_coverage_kpi import SpatialCoverageCalculator
+from src.domain.service.kpi_caculator.transfer_kpi import TransferRateCalculator
 from src.domain.service.filter_v2 import MinDistanceCandidateTripFilterV2
 
 
@@ -35,16 +37,12 @@ class RouteUpdateRequest(BaseModel):
 
 # Tham chiếu mặc định tới file config/database
 DEFAULT_REFERENCE_PATH = "path/to/data/matsim"
-
-
-
-
 @app.post("/api/kpi/calculate-all")
 def calculate_kpi_all_od_pairs():
     """
     Tính toàn bộ các chỉ số KPI bằng KPI Calculator sau khi tìm đường qua GenerateODRoutingResultService.
     """
-    repo = FakeRepoL4()
+    repo = FakeRepoL5()
     uow = DummyUnitOfWork(repo)
     routing_engine = CombinedRoutingEngine()
     filter_engine = MinDistanceCandidateTripFilterV2()
@@ -59,6 +57,7 @@ def calculate_kpi_all_od_pairs():
         
         transfer_calc = TransferRateCalculator()
         circuity_calc = CircuityIndexCalculator()
+        spatial_calc = SpatialCoverageCalculator()
         
         json_results = []
         for r in results:
@@ -66,9 +65,17 @@ def calculate_kpi_all_od_pairs():
             for opt in r.evaluated_routing_options():
                 t_res = transfer_calc.calculate(opt)
                 c_res = circuity_calc.calculate(opt, transit_network=transit_network, geometry_calculator=geo_calc)
+                s_res = spatial_calc.calculate(
+                    opt,
+                    od_pair_id=r.od_pair_id(),
+                    od_matrix=od_matrix,
+                    transit_network=transit_network,
+                    geometry_calculator=geo_calc,
+                )
                 
                 # Trích xuất dữ liệu của opt một cách tối ưu
-                candidate_routes = [leg.route_id for leg in opt.candidate_trip().candidate_legs]
+                candidate_trip = opt.candidate_trip()
+                candidate_routes = [leg.route_id for leg in candidate_trip.candidate_legs] if candidate_trip and candidate_trip.candidate_legs else []
                 
                 rep_trip = opt.representative_trip()
                 if rep_trip and rep_trip.legs:
@@ -86,7 +93,8 @@ def calculate_kpi_all_od_pairs():
                     },
                     "kpis": {
                         "transfer_kpi": t_res,
-                        "circuity_kpi": c_res
+                        "circuity_kpi": c_res,
+                        "spatial_coverage_kpi": s_res
                     }
                 })
             
