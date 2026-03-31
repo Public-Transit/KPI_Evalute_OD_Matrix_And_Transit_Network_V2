@@ -8,13 +8,14 @@ class VisualizeZoneAndTransitNetwork:
     def __init__(self):
         pass
     
-    def show(self, od_matrix: ODMatrix, transit_network: TransitNetwork, save_path=None):
+    def show(self, od_matrix: ODMatrix, transit_network: TransitNetwork, save_path=None, title=None):
         # ==========================================
         # CẤU HÌNH HIỂN THỊ (Sửa True/False để bật/tắt)
         # ==========================================
         SHOW_ZONE_LABELS = False
         SHOW_ROUTE_LABELS = False
         SHOW_STOP_LABELS = True
+        SHOW_OD_ARROWS = True
         # ==========================================
 
         fig, ax = plt.subplots(figsize=(10, 10))
@@ -69,9 +70,40 @@ class VisualizeZoneAndTransitNetwork:
                 ax.text(stop.coord().lat() + 0.00005, stop.coord().lon() - 0.0001, stop.id(), 
                         fontsize=8, color='black', weight='bold', zorder=10)
 
+        # 4. Vẽ mũi tên các cặp OD nếu được bật
+        if SHOW_OD_ARROWS:
+            for od in od_matrix.od_pairs():
+                o_zone_lst = [z for z in od_matrix.zones() if z.id() == od.origin_zone_id()]
+                d_zone_lst = [z for z in od_matrix.zones() if z.id() == od.destination_zone_id()]
+                if not o_zone_lst or not d_zone_lst: continue
+                
+                o_c = o_zone_lst[0].centroid()
+                d_c = d_zone_lst[0].centroid()
+                
+                ax.annotate(
+                    f"{od.id()} (Demand:{od.demand()})",
+                    xy=(d_c.lat(), d_c.lon()), xycoords='data',
+                    xytext=(o_c.lat(), o_c.lon()), textcoords='data',
+                    arrowprops=dict(arrowstyle="->,head_width=0.4,head_length=0.6",
+                                    color="orange",
+                                    lw=2,
+                                    connectionstyle="arc3,rad=0.15"), 
+                    color="brown",
+                    fontsize=9,
+                    fontweight="bold",
+                    ha="center",
+                    va="center",
+                    zorder=7,
+                    bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="orange", alpha=0.9)
+                )
+
         # Tự động scale
         ax.set_aspect('equal', adjustable='datalim')
-        ax.set_title("Chế mô phỏng: Transit Network 3x3 Grid", fontsize=16)
+        
+        if title:
+            ax.set_title(title, fontsize=16)
+        else:
+            ax.set_title("Chế mô phỏng: Transit Network 3x3 Grid", fontsize=16)
         
         # Sắp xếp legend không bị trùng lặp
         handles, labels = plt.gca().get_legend_handles_labels()
