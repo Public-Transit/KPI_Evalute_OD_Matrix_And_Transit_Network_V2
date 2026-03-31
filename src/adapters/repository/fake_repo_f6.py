@@ -9,31 +9,41 @@ from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.transit_network import TransitNetwork
 from src.adapters.repository.abstract_repository import AbstractRepository
 
-class FakeRepoF4(AbstractRepository):
+class FakeRepoF6(AbstractRepository):
     """
-    Filter Case 4: O/D Priority Selection
-    Test việc tự động bỏ qua trạm xa tâm vùng O/D.
+    Filter Case 6: O/D Symmetry Tie-Breaker for 1-Transfer.
+    Test việc giải quyết trường hợp hòa (equal access distance) ở điểm đầu cuối bằng cách chọn
+    cặp Boarding/Alighting giúp tổng quãng đường di chuyển trên xe (route distance) là ngắn nhất.
     """
     def __init__(self):
         def P(x, y): return Point(21.0 + x/100000.0, 105.0 + y/100000.0)
         def S(sid, x, y): return Stop(sid, 21.0 + x/100000.0, 105.0 + y/100000.0)
 
         self.zones = [
+            # Z1 tâm ở (50, 50)
             Zone("Z1", [P(0,0), P(100,0), P(100,100), P(0,100)], P(50,50)),
             Zone("Z_Hub", [P(200,0), P(300,0), P(300,100), P(200,100)], P(250,50)),
+            # Z2 tâm ở (450, 50)
             Zone("Z2", [P(400,0), P(500,0), P(500,100), P(400,100)], P(450,50))
         ]
         self.od_pairs = [ODPair("OD1", "Z1", "Z2", 100)]
         self.stops = [
-            S("S1_Close_O", 45, 50),    # Cách (50,50) = 5. Lên xe sớm hơn.
-            S("S1_Long_Walk", 90, 50),  # Cách (50,50) = 40. Lên xe muộn hơn (ngồi ít hơn).
+            # Boarding: S1_Top và S1_Bot cách tâm (50,50) đều bằng 10. Nhưng S1_Bot thuận lộ trình hơn.
+            S("S1_Top_Tie", 50, 60), 
+            S("S1_Bot_Tie", 50, 40), 
             S("T1", 250, 50),
-            S("S2_Long_Walk", 410, 50), # Cách (450,50) = 40. Xuống xe sớm hơn.
-            S("S2_Close_D", 455, 50)    # Cách (450,50) = 5. Xuống xe muộn hơn (đi bộ ít hơn).
+            # Alighting: S2_Top và S2_Bot cách tâm (450,50) đều bằng 10. S2_Top thuận lộ trình hơn.
+            S("S2_Top_Tie", 450, 60),
+            S("S2_Bot_Tie", 450, 40)
         ]
         self.routes = [
-            Route("R1", [P(45,50), P(90,50), P(250,50)], ["S1_Close_O", "S1_Long_Walk", "T1"]),
-            Route("R2", [P(250,50), P(410,50), P(455,50)], ["T1", "S2_Long_Walk", "S2_Close_D"])
+            # Tuyến 1 đi dích dắc S1_Top -> S1_Bot -> Hub.
+            # Rõ ràng lên ở S1_Bot sẽ bớt được quãng xe chạy (50,60) -> (50,40)
+            Route("R1", [P(50,60), P(50,40), P(250,50)], ["S1_Top_Tie", "S1_Bot_Tie", "T1"]),
+            
+            # Tuyến 2 đi từ Hub -> S2_Top -> S2_Bot.
+            # Xuống ở S2_Top sẽ xuống xe sớm hơn.
+            Route("R2", [P(250,50), P(450,60), P(450,40)], ["T1", "S2_Top_Tie", "S2_Bot_Tie"])
         ]
         self.trips = []
 

@@ -23,10 +23,10 @@ class FakeRepoL2(AbstractRepository):
         ]
         
         self.od_pairs = [ODPair("OD1", "Z1", "Z2", 100)]
-        self.stops = [S("S1", 50, 50), S("S2", 350, 50), S("S3_Detour", 200, 200)]
+        self.stops = [S("S1", 50, 50), S("S2", 350, 50), S("S3d", 200, 200)]
         self.routes = [
-            Route("R_Fast", [P(50,50), P(350,50)], ["S1", "S2"]),
-            Route("R_Slow", [P(50,50), P(200,200), P(350,50)], ["S1", "S3_Detour", "S2"])
+            Route("Rf", [P(50,50), P(350,50)], ["S1", "S2"]),
+            Route("Rs", [P(50,50), P(200,200), P(350,50)], ["S1", "S3d", "S2"])
         ]
         self.trips = []
 

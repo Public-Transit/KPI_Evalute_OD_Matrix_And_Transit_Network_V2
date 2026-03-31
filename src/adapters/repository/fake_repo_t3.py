@@ -9,16 +9,10 @@ from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.transit_network import TransitNetwork
 from src.adapters.repository.abstract_repository import AbstractRepository
 
-class FakeRepoOff2(AbstractRepository):
+class FakeRepoT3(AbstractRepository):
     """
-    Off-Route Case 2: Off-Line Drift Stops
-    Các trạm bị trôi dạt (drift) khỏi đường truyền Route (do nhiễu GPS hoặc nằm trên vỉa hè).
-    Thuật toán sẽ chiếu vuông góc trạm xuống tuyến đường để tính quãng đường xe chạy qua.
-    Thử nghiệm Tie-breaker:
-    - S1_Drift(50, 70) cách tâm (50,50) là 20. Hình chiếu là (50,50). 
-    - S1_OnLine(30, 50) nằm ngay trên tuyến, cách tâm (50,50) là 20. Hình chiếu là (30,50).
-    S1_Drift cự ly xe buýt ngắn hơn S1_OnLine (vì chiếu xuống gần đích hơn).
-    -> Bộ lọc phải chọn S1_Drift dù nó đang bay lơ lửng ngoài tuyến!
+    Test 3: Ưu tiên khoảng cách tiếp cận (Walking) hơn khoảng cách di chuyển bus (Direct).
+    Mục tiêu: Kiểm tra sự xung đột giữa 2 ưu tiên. Hệ thống phải chọn Route có Walking Min.
     """
     def __init__(self):
         def P(x, y): return Point(21.0 + x/100000.0, 105.0 + y/100000.0)
@@ -30,12 +24,16 @@ class FakeRepoOff2(AbstractRepository):
         ]
         self.od_pairs = [ODPair("OD1", "Z1", "Z2", 100)]
         self.stops = [
-            S("S1dr", 50, 70),   # Bị lệch 20 đơn vị Y
-            S("S1ol", 30, 50),
-            S("S2d", 350, 50)
+            # Tuyến A: Đi bộ Min (5+5=10), Bus dài (290)
+            S("S1_WalkMin_O", 55, 50), 
+            S("S2_WalkMin_D", 345, 50),
+            # Tuyến B: Đi bộ lớn (20+20=40), Bus ngắn (260)
+            S("S3_BusMin_O", 70, 50),
+            S("S4_BusMin_D", 330, 50)
         ]
         self.routes = [
-            Route("R1", [P(10,50), P(390,50)], ["S1dr", "S1ol", "S2d"])
+            Route("R_WalkMin", [P(55,50), P(345,50)], ["S1_WalkMin_O", "S2_WalkMin_D"]),
+            Route("R_BusMin", [P(70,50), P(330,50)], ["S3_BusMin_O", "S4_BusMin_D"])
         ]
         self.trips = []
 

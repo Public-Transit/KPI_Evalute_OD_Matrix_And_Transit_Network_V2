@@ -9,33 +9,31 @@ from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.transit_network import TransitNetwork
 from src.adapters.repository.abstract_repository import AbstractRepository
 
-class FakeRepoOff2(AbstractRepository):
+class FakeRepoC2(AbstractRepository):
     """
-    Off-Route Case 2: Off-Line Drift Stops
-    Các trạm bị trôi dạt (drift) khỏi đường truyền Route (do nhiễu GPS hoặc nằm trên vỉa hè).
-    Thuật toán sẽ chiếu vuông góc trạm xuống tuyến đường để tính quãng đường xe chạy qua.
-    Thử nghiệm Tie-breaker:
-    - S1_Drift(50, 70) cách tâm (50,50) là 20. Hình chiếu là (50,50). 
-    - S1_OnLine(30, 50) nằm ngay trên tuyến, cách tâm (50,50) là 20. Hình chiếu là (30,50).
-    S1_Drift cự ly xe buýt ngắn hơn S1_OnLine (vì chiếu xuống gần đích hơn).
-    -> Bộ lọc phải chọn S1_Drift dù nó đang bay lơ lửng ngoài tuyến!
+    Circuity Case 2: Tuyến đi vòng vèo (U-Shape detour).
+    Độ vòng vèo (Circuity Index) dự kiến sẽ lớn hơn 1 rất nhiều (khoảng 3.0),
+    vì tuyến chạy vòng thay vì đi thẳng. Khoảng cách đi thẳng = 100, Khoảng cách route = 300.
     """
     def __init__(self):
         def P(x, y): return Point(21.0 + x/100000.0, 105.0 + y/100000.0)
         def S(sid, x, y): return Stop(sid, 21.0 + x/100000.0, 105.0 + y/100000.0)
 
         self.zones = [
-            Zone("Z1", [P(0,0), P(100,0), P(100,100), P(0,100)], P(50,50)),
-            Zone("Z2", [P(300,0), P(400,0), P(400,100), P(300,100)], P(350,50))
+            Zone("Z1", [P(-10,-10), P(10,-10), P(10,10), P(-10,10)], P(0,0)),
+            Zone("Z2", [P(90,-10), P(110,-10), P(110,10), P(90,10)], P(100,0))
         ]
         self.od_pairs = [ODPair("OD1", "Z1", "Z2", 100)]
         self.stops = [
-            S("S1dr", 50, 70),   # Bị lệch 20 đơn vị Y
-            S("S1ol", 30, 50),
-            S("S2d", 350, 50)
+            S("S1_Start", 0, 0),
+            S("S_U_Turn1", 0, 100),
+            S("S_U_Turn2", 100, 100),
+            S("S2_End", 100, 0)
         ]
         self.routes = [
-            Route("R1", [P(10,50), P(390,50)], ["S1dr", "S1ol", "S2d"])
+            Route("R1_Detour", 
+                  [P(0,0), P(0,100), P(100,100), P(100,0)], 
+                  ["S1_Start", "S_U_Turn1", "S_U_Turn2", "S2_End"])
         ]
         self.trips = []
 

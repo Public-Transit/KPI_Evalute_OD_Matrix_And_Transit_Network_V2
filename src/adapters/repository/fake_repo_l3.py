@@ -27,10 +27,10 @@ class FakeRepoL3(AbstractRepository):
             ODPair("OD2", "Z1", "Z_Hub", 50),     # Z1 -> Hub (Direct R_Feed)
             ODPair("OD3", "Z_Hub", "Z2", 50)      # Hub -> Z2 (Direct R_Express)
         ]
-        self.stops = [S("S1", 50, 50), S("S_Hub", 350, 50), S("S2", 650, 50)]
+        self.stops = [S("S1", 50, 50), S("H", 350, 50), S("S2", 650, 50)]
         self.routes = [
-            Route("R_Feed", [P(50,50), P(350,50)], ["S1", "S_Hub"]),
-            Route("R_Express", [P(350,50), P(650,50)], ["S_Hub", "S2"])
+            Route("Rfe", [P(50,50), P(350,50)], ["S1", "H"]),
+            Route("Rex", [P(350,50), P(650,50)], ["H", "S2"])
         ]
         self.trips = []
 

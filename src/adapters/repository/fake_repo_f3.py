@@ -27,10 +27,10 @@ class FakeRepoF3(AbstractRepository):
         self.stops = [
             S("S1", 50, 50), S("S2", 450, 50),
             S("T1", 210, 50), S("T2", 290, 50), 
-            S("M_Detour", 250, 200) # Điểm vòng vèo trên tuyến R1 ở Hub
+            S("Md", 250, 200) # Điểm vòng vèo trên tuyến R1 ở Hub
         ]
         self.routes = [
-            Route("R1", [P(50,50), P(210,50), P(250,200), P(290,50)], ["S1", "T1", "M_Detour", "T2"]),
+            Route("R1", [P(50,50), P(210,50), P(250,200), P(290,50)], ["S1", "T1", "Md", "T2"]),
             Route("R2", [P(210,50), P(290,50), P(450,50)], ["T1", "T2", "S2"])
         ]
         self.trips = []

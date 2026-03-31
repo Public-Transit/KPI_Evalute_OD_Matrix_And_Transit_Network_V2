@@ -56,22 +56,33 @@ class VisualizeZoneAndTransitNetwork:
                         bbox=dict(facecolor=route_colors[i % len(route_colors)], edgecolor='none', boxstyle='round,pad=0.2'),
                         fontsize=10, weight='bold', zorder=6)
 
-        # 3. Vẽ danh sách Stops chung của hệ thống
-        stops_x = [stop.coord().lat() for stop in transit_network.stops()]
-        stops_y = [stop.coord().lon() for stop in transit_network.stops()]
+        # 3. Vẽ danh sách Stops chung của hệ thống (Chỉ hiện các trạm có Tuyến đi qua)
+        all_routed_stops = set()
+        for r in transit_network.routes():
+            all_routed_stops.update(r.stops_seq())
+
+        visible_stops = [s for s in transit_network.stops() if s.id() in all_routed_stops]
+        
+        stops_x = [stop.coord().lat() for stop in visible_stops]
+        stops_y = [stop.coord().lon() for stop in visible_stops]
+
         # Làm nổi bật điểm dừng chung bằng chấm đen nhỏ ở chính giữa tâm
-        ax.scatter(stops_x, stops_y, color='black', zorder=5, s=20, label='Mạng lưới Stops')
+        ax.scatter(stops_x, stops_y, color='black', zorder=5, s=15, label='Mạng lưới Stops (Routed)')
         
         # Thêm mã Stop cạnh trạm (scale Lat/Lon offset ~ 0.00005)
         if SHOW_STOP_LABELS:
-            for stop in transit_network.stops():
+            for stop in visible_stops:
+                # Rút ngắn tên trạm: Lấy 2 phần cuối nếu có dấu gạch dưới (ví dụ S_H_75_50 -> 75_50)
+                parts = stop.id().split('_')
+                display_id = "_".join(parts[-2:]) if len(parts) >= 2 else stop.id()
+                
                 # Set zorder=10 để Stop Text luôn nằm trên cùng, không bị đè
-                ax.text(stop.coord().lat() + 0.00005, stop.coord().lon() - 0.0001, stop.id(), 
-                        fontsize=8, color='black', weight='bold', zorder=10)
+                ax.text(stop.coord().lat() + 0.00005, stop.coord().lon() - 0.0001, display_id, 
+                        fontsize=6, color='black', alpha=0.8, weight='normal', zorder=10)
 
         # Tự động scale
         ax.set_aspect('equal', adjustable='datalim')
-        ax.set_title("Chế mô phỏng: Transit Network 3x3 Grid", fontsize=16)
+        ax.set_title("", fontsize=16)
         
         # Sắp xếp legend không bị trùng lặp
         handles, labels = plt.gca().get_legend_handles_labels()

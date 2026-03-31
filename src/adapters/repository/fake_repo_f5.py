@@ -34,9 +34,9 @@ class FakeRepoF5(AbstractRepository):
         ]
         self.od_pairs = [ODPair("OD1", "Z1", "Z2", 100)]
         self.stops = [
-            S("S1_Far", 10, 50), S("S1_Mid", 30, 50), S("S1_Center", 50, 50),
-            S("T1", 450, 50), S("T2_Center", 500, 50), S("T3", 550, 50),
-            S("S2_Center", 950, 50), S("S2_Mid", 970, 50), S("S2_Far", 990, 50)
+            S("S1f", 10, 50), S("S1m", 30, 50), S("S1c", 50, 50),
+            S("T1", 450, 50), S("T2c", 500, 50), S("T3", 550, 50),
+            S("S2c", 950, 50), S("S2m", 970, 50), S("S2f", 990, 50)
         ]
         self.routes = [
             # R1: Cực lằng nhằng ở nửa sau
@@ -45,13 +45,13 @@ class FakeRepoF5(AbstractRepository):
                 P(450,50),                           # Tới T1
                 P(450,500), P(500,500), P(500,50),   # Vòng một vòng qua bắc cực tới T2_Center
                 P(500,-400), P(550,-400), P(550,50)  # Vòng qua nam cực tới T3
-            ], ["S1_Far", "S1_Mid", "S1_Center", "T1", "T2_Center", "T3"]),
+            ], ["S1f", "S1m", "S1c", "T1", "T2c", "T3"]),
             
             # R2: Rất thẳng thắn
             Route("R2", [
                 P(450,50), P(500,50), P(550,50),     # Chạy qua T1, T2_Center, T3 không chớp mắt
                 P(950,50), P(970,50), P(990,50)      # Giao tại Z2
-            ], ["T1", "T2_Center", "T3", "S2_Center", "S2_Mid", "S2_Far"])
+            ], ["T1", "T2c", "T3", "S2c", "S2m", "S2f"])
         ]
         self.trips = []
 

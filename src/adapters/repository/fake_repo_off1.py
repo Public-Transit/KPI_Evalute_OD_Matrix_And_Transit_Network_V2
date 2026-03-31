@@ -25,12 +25,12 @@ class FakeRepoOff1(AbstractRepository):
         ]
         self.od_pairs = [ODPair("OD1", "Z1", "Z2", 100)]
         self.stops = [
-            S("S1_MidEdge", 50, 50), # Nằm chính giữa đoạn thẳng P(10,50) -> P(390,50)
-            S("S2_MidEdge", 350, 50)
+            S("S1me", 50, 50), # Nằm chính giữa đoạn thẳng P(10,50) -> P(390,50)
+            S("S2me", 350, 50)
         ]
         self.routes = [
             # Route chỉ có 2 đỉnh xa xôi
-            Route("R1", [P(10,50), P(390,50)], ["S1_MidEdge", "S2_MidEdge"])
+            Route("R1", [P(10,50), P(390,50)], ["S1me", "S2me"])
         ]
         self.trips = []
 

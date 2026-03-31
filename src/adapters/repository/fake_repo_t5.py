@@ -9,16 +9,10 @@ from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.transit_network import TransitNetwork
 from src.adapters.repository.abstract_repository import AbstractRepository
 
-class FakeRepoOff2(AbstractRepository):
+class FakeRepoT5(AbstractRepository):
     """
-    Off-Route Case 2: Off-Line Drift Stops
-    Các trạm bị trôi dạt (drift) khỏi đường truyền Route (do nhiễu GPS hoặc nằm trên vỉa hè).
-    Thuật toán sẽ chiếu vuông góc trạm xuống tuyến đường để tính quãng đường xe chạy qua.
-    Thử nghiệm Tie-breaker:
-    - S1_Drift(50, 70) cách tâm (50,50) là 20. Hình chiếu là (50,50). 
-    - S1_OnLine(30, 50) nằm ngay trên tuyến, cách tâm (50,50) là 20. Hình chiếu là (30,50).
-    S1_Drift cự ly xe buýt ngắn hơn S1_OnLine (vì chiếu xuống gần đích hơn).
-    -> Bộ lọc phải chọn S1_Drift dù nó đang bay lơ lửng ngoài tuyến!
+    Test 5: Tối ưu toàn diện (Tiếp cận Min + Trung chuyển Min).
+    Mục tiêu: Tìm được lộ trình có tổng đi bộ là Min, đồng thời điểm trung chuyển giúp bus distance là Min.
     """
     def __init__(self):
         def P(x, y): return Point(21.0 + x/100000.0, 105.0 + y/100000.0)
@@ -26,16 +20,27 @@ class FakeRepoOff2(AbstractRepository):
 
         self.zones = [
             Zone("Z1", [P(0,0), P(100,0), P(100,100), P(0,100)], P(50,50)),
-            Zone("Z2", [P(300,0), P(400,0), P(400,100), P(300,100)], P(350,50))
+            Zone("Z_Hub", [P(400,0), P(600,0), P(600,100), P(400,100)], P(500,50)),
+            Zone("Z2", [P(900,0), P(1000,0), P(1000,100), P(900,100)], P(950,50))
         ]
         self.od_pairs = [ODPair("OD1", "Z1", "Z2", 100)]
         self.stops = [
-            S("S1dr", 50, 70),   # Bị lệch 20 đơn vị Y
-            S("S1ol", 30, 50),
-            S("S2d", 350, 50)
+            S("S1_O", 55, 50),   # Walk at O = 5
+            S("S2_D", 945, 50),  # Walk at D = 5
+            
+            # Các bến trung chuyển tại Hub
+            S("T_Short", 500, 50), # Nằm thẳng hàng Path O-D
+            S("T_Long", 500, 200),  # Nằm lệch (Detour)
+            S("T_Longer", 500, 400) # Nằm lệch xa hơn
         ]
         self.routes = [
-            Route("R1", [P(10,50), P(390,50)], ["S1dr", "S1ol", "S2d"])
+            # Tuyến gom (Feeder) từ O đến Hub qua các bến khác nhau
+            Route("R_Feeder", [P(55,50), P(500,50), P(500,200), P(500,400)], 
+                  ["S1_O", "T_Short", "T_Long", "T_Longer"]),
+            
+            # Tuyến trục (Express) từ Hub đến D qua các bến
+            Route("R_Express", [P(500,400), P(500,200), P(500,50), P(945,50)], 
+                  ["T_Longer", "T_Long", "T_Short", "S2_D"])
         ]
         self.trips = []
 

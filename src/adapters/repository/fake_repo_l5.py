@@ -36,18 +36,18 @@ class FakeRepoL5(AbstractRepository):
             ODPair("OD_Z4_Z2", "Z4", "Z2", 400)   # Transfer tại Z5 hoặc tuyến chéo (nếu có bổ sung)
         ]
         self.stops = [
-            S("S1_O", 50, 50), S("S2_D", 650, 650),
-            S("S3_N", 350, 50), S("S4_W", 50, 350), S("S5_C", 350, 350),
-            S("S6_E", 650, 350), S("S7_S", 350, 650)
+            S("S1o", 50, 50), S("S2d", 650, 650),
+            S("S3n", 350, 50), S("S4w", 50, 350), S("S5c", 350, 350),
+            S("S6e", 650, 350), S("S7s", 350, 650)
         ]
         self.routes = [
-            Route("R_Horiz_Top", [P(50,50), P(350,50)], ["S1_O", "S3_N"]),
-            Route("R_Vert_Left", [P(50,50), P(50,350)], ["S1_O", "S4_W"]),
-            Route("R_Diag_Main", [P(50,50), P(350,350), P(650,650)], ["S1_O", "S5_C", "S2_D"]),
-            Route("R_Horiz_Mid", [P(50,350), P(350,350), P(650,350)], ["S4_W", "S5_C", "S6_E"]),
-            Route("R_Vert_Mid", [P(350,50), P(350,350), P(350,650)], ["S3_N", "S5_C", "S7_S"]),
-            Route("R_Vert_Right", [P(650,350), P(650,650)], ["S6_E", "S2_D"]),
-            Route("R_Horiz_Bot", [P(350,650), P(650,650)], ["S7_S", "S2_D"])
+            Route("Rht", [P(50,50), P(350,50)], ["S1o", "S3n"]),
+            Route("Rvl", [P(50,50), P(50,350)], ["S1o", "S4w"]),
+            Route("Rdm", [P(50,50), P(350,350), P(650,650)], ["S1o", "S5c", "S2d"]),
+            Route("Rhm", [P(50,350), P(350,350), P(650,350)], ["S4w", "S5c", "S6e"]),
+            Route("Rvm", [P(350,50), P(350,350), P(350,650)], ["S3n", "S5c", "S7s"]),
+            Route("Rvr", [P(650,350), P(650,650)], ["S6e", "S2d"]),
+            Route("Rhb", [P(350,650), P(650,650)], ["S7s", "S2d"])
         ]
         self.trips = []
 

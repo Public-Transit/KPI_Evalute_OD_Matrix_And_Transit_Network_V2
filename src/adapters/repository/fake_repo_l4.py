@@ -28,16 +28,16 @@ class FakeRepoL4(AbstractRepository):
             ODPair("OD3", "Z_Hub", "Z2", 50)      # Hub -> Z2 (Direct R_Transfer_Exp)
         ]
         self.stops = [
-            S("S1_Z1", 50, 50), 
-            S("S2_Z2", 550, 50), 
-            S("SHub1", 300, 200),
-            S("SDirect_Loop1", 100,-200), 
-            S("SDirect_Loop2", 400,-200)
+            S("S1z", 50, 50), 
+            S("S2z", 550, 50), 
+            S("H1", 300, 200),
+            S("L1", 100,-200), 
+            S("L2", 400,-200)
         ]
         self.routes = [
-            Route("R_ThangNhungVong", [P(50,50), P(100,-200), P(400,-200), P(550,50)], ["S1_Z1", "SDirect_Loop1", "SDirect_Loop2", "S2_Z2"]),
-            Route("R_Transfer_Feed", [P(50,50), P(300,200)], ["S1_Z1", "SHub1"]),
-            Route("R_Transfer_Exp", [P(300,200), P(550,50)], ["SHub1", "S2_Z2"])
+            Route("Rtv", [P(50,50), P(100,-200), P(400,-200), P(550,50)], ["S1z", "L1", "L2", "S2z"]),
+            Route("Rtf", [P(50,50), P(300,200)], ["S1z", "H1"]),
+            Route("Rte", [P(300,200), P(550,50)], ["H1", "S2z"])
         ]
         self.trips = []
 

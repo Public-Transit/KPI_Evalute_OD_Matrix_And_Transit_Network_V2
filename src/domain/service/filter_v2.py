@@ -8,18 +8,6 @@ from src.domain.model.stop import Stop
 from src.domain.model.point import Point
 from src.domain.port import IGeometryCalculator
 
-def _get_closest_stop(stop_ids: set[str], centroid: Point, transit_network: TransitNetwork, calc: IGeometryCalculator) -> Stop:
-    best_stop = None
-    min_dist = float('inf')
-    for sid in stop_ids:
-        stop = transit_network.get_stop_by_id(sid)
-        if not stop: continue
-        d = stop.coord().distance_to(centroid, calc)
-        if d < min_dist:
-            min_dist = d
-            best_stop = stop
-    return best_stop
-
 
 class AbstractCandidateTripFilterV2(ABC):
     @abstractmethod
@@ -90,37 +78,97 @@ class MinDistanceCandidateTripFilterV2(AbstractCandidateTripFilterV2):
             leg1 = candidate_trip.candidate_legs[0]
             leg2 = candidate_trip.candidate_legs[1]
             
-            board_stop = _get_closest_stop(leg1.possible_boarding_stop_ids, origin_centroid, transit_network, geometry_calculator)
-            alight_stop = _get_closest_stop(leg2.possible_alighting_stop_ids, dest_centroid, transit_network, geometry_calculator)
+            route1 = transit_network.get_route_by_id(leg1.route_id)
+            route2 = transit_network.get_route_by_id(leg2.route_id)
             
-            if not board_stop or not alight_stop:
-                return None
-                
-            transfer_stop_ids = leg1.possible_alighting_stop_ids
-            best_transfer_stop_id = None
+            best_tuple = None
+            min_access_score = float('inf')
+            min_route_dist = float('inf')
             
-            if len(transfer_stop_ids) == 1:
-                best_transfer_stop_id = list(transfer_stop_ids)[0]
-            elif len(transfer_stop_ids) > 1:
-                route1 = transit_network.get_route_by_id(leg1.route_id)
-                route2 = transit_network.get_route_by_id(leg2.route_id)
+            for b_id in leg1.possible_boarding_stop_ids:
+                b_stop = transit_network.get_stop_by_id(b_id)
+                if not b_stop: continue
+                access_o = b_stop.coord().distance_to(origin_centroid, geometry_calculator)
                 
-                min_route_dist = float('inf')
-                for t_id in transfer_stop_ids:
-                    t_stop = transit_network.get_stop_by_id(t_id)
-                    if not t_stop: continue
-                    d1 = route1.get_distance_between_two_stops(board_stop, t_stop, geometry_calculator)
-                    d2 = route2.get_distance_between_two_stops(t_stop, alight_stop, geometry_calculator)
-                    if d1 + d2 < min_route_dist:
-                        min_route_dist = d1 + d2
-                        best_transfer_stop_id = t_id
+                for a_id in leg2.possible_alighting_stop_ids:
+                    a_stop = transit_network.get_stop_by_id(a_id)
+                    if not a_stop: continue
+                    access_d = a_stop.coord().distance_to(dest_centroid, geometry_calculator)
+                    
+                    score = access_o + access_d
+                    
+                    for t_id in leg1.possible_alighting_stop_ids: # transfer stops
+                        t_stop = transit_network.get_stop_by_id(t_id)
+                        if not t_stop: continue
                         
-            if best_transfer_stop_id:
+                        d1 = route1.get_distance_between_two_stops(b_stop, t_stop, geometry_calculator)
+                        d2 = route2.get_distance_between_two_stops(t_stop, a_stop, geometry_calculator)
+                        route_dist = d1 + d2
+                        
+                        if score < min_access_score - 1e-4:
+                            min_access_score = score
+                            min_route_dist = route_dist
+                            best_tuple = (b_id, t_id, a_id)
+                        elif abs(score - min_access_score) <= 1e-4:
+                            if route_dist < min_route_dist:
+                                min_route_dist = route_dist
+                                best_tuple = (b_id, t_id, a_id)
+            
+            if best_tuple:
                 return Trip([
-                    Leg(leg1.route_id, board_stop.id(), best_transfer_stop_id),
-                    Leg(leg2.route_id, best_transfer_stop_id, alight_stop.id())
+                    Leg(leg1.route_id, best_tuple[0], best_tuple[1]),
+                    Leg(leg2.route_id, best_tuple[1], best_tuple[2])
                 ])
                 
         return None
+
+class GlobalMinDistanceTripsFilterV2:
+    '''
+    Lọc từ danh sách nhiều CandidateTrip -> Chốt 1 Trip duy nhất tối ưu nhất.
+    '''
+    def __init__(self):
+        self.local_filter = MinDistanceCandidateTripFilterV2()
+
+    def filter(self, od_pair: ODPair, od_matrix: ODMatrix, transit_network: TransitNetwork, candidate_trips: list[CandidateTrip], geometry_calculator: IGeometryCalculator) -> Trip:
+        if not candidate_trips:
+            return None
+            
+        best_trip = None
+        min_access_score = float('inf')
+        min_route_dist = float('inf')
+        
+        origin_zone = od_matrix.get_zone_by_id(od_pair.origin_zone_id())
+        dest_zone = od_matrix.get_zone_by_id(od_pair.destination_zone_id())
+        origin_centroid = origin_zone.centroid()
+        dest_centroid = dest_zone.centroid()
+
+        for candidate in candidate_trips:
+            trip = self.local_filter.filter(od_pair, od_matrix, transit_network, candidate, geometry_calculator)
+            if not trip:
+                continue
+                
+            b_stop = transit_network.get_stop_by_id(trip.legs[0].board_stop_id)
+            a_stop = transit_network.get_stop_by_id(trip.legs[-1].alight_stop_id)
+            
+            score = b_stop.coord().distance_to(origin_centroid, geometry_calculator) + \
+                    a_stop.coord().distance_to(dest_centroid, geometry_calculator)
+            
+            route_dist = 0
+            for leg in trip.legs:
+                route = transit_network.get_route_by_id(leg.route_id)
+                b = transit_network.get_stop_by_id(leg.board_stop_id)
+                a = transit_network.get_stop_by_id(leg.alight_stop_id)
+                route_dist += route.get_distance_between_two_stops(b, a, geometry_calculator)
+            
+            if score < min_access_score - 1e-4:
+                min_access_score = score
+                min_route_dist = route_dist
+                best_trip = trip
+            elif abs(score - min_access_score) <= 1e-4:
+                if route_dist < min_route_dist - 1e-4:
+                    min_route_dist = route_dist
+                    best_trip = trip
+        
+        return best_trip
 
 

@@ -24,7 +24,7 @@ class FakeRepoL1(AbstractRepository):
         
         self.od_pairs = [ODPair("OD1", "Z1", "Z2", 100)]
         self.stops = [S("S1", 50, 50), S("S2", 350, 50)]
-        self.routes = [Route("R_Direct", [P(50,50), P(350,50)], ["S1", "S2"])]
+        self.routes = [Route("Rd", [P(50,50), P(350,50)], ["S1", "S2"])]
         self.trips = []
 
     def get(self, reference=None) -> Tuple[list[Stop], list[Route], list[Zone], list[ODPair], list[Trip]]:
