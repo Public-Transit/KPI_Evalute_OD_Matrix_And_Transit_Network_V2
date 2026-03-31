@@ -1,5 +1,5 @@
 import pytest
-from src.domain.service.filter import MinDistanceCandidateTripFilter
+from src.domain.service.filter import MinDistanceCandidateTripFilterV2
 from src.domain.model.point import Point
 from src.domain.model.zone import Zone
 from src.domain.model.stop import Stop
@@ -28,11 +28,10 @@ def test_filter_strategy_0_transfer():
     
     ct = CandidateTrip([CandidateLeg("R1", {"S1"}, {"S2"})])
     
-    calc = ShapelyGeometryCalculator
-()
-    f = MinDistanceCandidateTripFilter()
+    calc = ShapelyGeometryCalculator()
+    f = MinDistanceCandidateTripFilterV2()
     
-    res_trip = f.filter(od1, matrix, tn, [ct], calc)
+    res_trip = f.filter(od1, matrix, tn, ct, calc)
     
     assert res_trip is not None
     assert len(res_trip.legs) == 1

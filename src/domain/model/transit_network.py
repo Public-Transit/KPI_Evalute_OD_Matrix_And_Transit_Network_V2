@@ -10,10 +10,10 @@ class TransitNetwork:
         self._stop_map = {stop.id(): stop for stop in stops}
         self._route_map = {route.id(): route for route in routes}
 
-    def get_stops(self) -> list[Stop]:
+    def stops(self) -> list[Stop]:
         return self._stops
     
-    def get_routes(self) -> list[Route]:
+    def routes(self) -> list[Route]:
         return self._routes
         
     def get_stop_by_id(self, stop_id: str) -> Stop:

@@ -4,8 +4,7 @@ from src.domain.model.zone import Zone
 from src.domain.model.route import Route
 from src.domain.model.stop import Stop
 
-class ShapelyGeometryCalculator
-(IGeometryCalculator):
+class MockGeometryCalculator(IGeometryCalculator):
     def calculate_distance_between_two_points(self, p1: Point, p2: Point) -> float:
         # Distance mock for testing
         return ((p1.lat() - p2.lat())**2 + (p1.lon() - p2.lon())**2)**0.5 * 111320
@@ -29,3 +28,6 @@ class ShapelyGeometryCalculator
 
     def calculate_zone_coverage_ratio(self, zone: Zone, points: list[Point], radius_m: float) -> float:
         return 0.5
+
+
+ShapelyGeometryCalculator = MockGeometryCalculator

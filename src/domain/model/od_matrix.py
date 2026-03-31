@@ -12,10 +12,10 @@ class ODMatrix:
 
 
 
-    def get_od_pairs(self) -> list[ODPair]:
+    def od_pairs(self) -> list[ODPair]:
         return self._od_pairs
     
-    def get_zones(self) -> list[Zone]:
+    def zones(self) -> list[Zone]:
         return self._zones
         
     def get_zone_by_id(self, zone_id: str) -> Zone:

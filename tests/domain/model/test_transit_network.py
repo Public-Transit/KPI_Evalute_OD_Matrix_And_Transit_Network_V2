@@ -10,8 +10,8 @@ def test_transit_network_creation():
     
     tn = TransitNetwork([s1], [r1])
     
-    assert len(tn.get_routes()) == 1
-    assert len(tn.get_stops()) == 1
+    assert len(tn.routes()) == 1
+    assert len(tn.stops()) == 1
     assert tn.get_route_by_id("R1") == r1
     assert tn.get_stop_by_id("S1") == s1
     assert tn.get_route_by_id("NonExistent") is None

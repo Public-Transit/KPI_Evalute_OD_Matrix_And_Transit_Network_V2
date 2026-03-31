@@ -11,7 +11,7 @@ def test_od_matrix_creation():
     
     matrix = ODMatrix([od1], [z1, z2])
     
-    assert len(matrix.get_zones()) == 2
-    assert len(matrix.get_od_pairs()) == 1
+    assert len(matrix.zones()) == 2
+    assert len(matrix.od_pairs()) == 1
     assert matrix.get_zone_by_id("Z1") == z1
     assert matrix.get_od_pair_by_id("OD1") == od1

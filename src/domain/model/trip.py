@@ -9,5 +9,3 @@ class Trip:
 @dataclass
 class CandidateTrip:
     candidate_legs: list[CandidateLeg]
-    
-    
