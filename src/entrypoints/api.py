@@ -14,6 +14,7 @@ from src.domain.model.od_matrix import ODMatrix
 from src.domain.service.kpi_caculator.circuity_kpi import CircuityIndexCalculator
 from src.domain.service.kpi_caculator.spatial_coverage_kpi import SpatialCoverageCalculator
 from src.domain.service.kpi_caculator.transfer_kpi import TransferRateCalculator
+from src.domain.service.aggregate.composite_quality_index import CompositeQualityIndexCalculator
 from src.domain.service.filter import MinDistanceCandidateTripFilterV2
 
 
@@ -58,6 +59,7 @@ def calculate_kpi_all_od_pairs():
         transfer_calc = TransferRateCalculator()
         circuity_calc = CircuityIndexCalculator()
         spatial_calc = SpatialCoverageCalculator()
+        composite_calc = CompositeQualityIndexCalculator()
         
         json_results = []
         for r in results:
@@ -71,6 +73,11 @@ def calculate_kpi_all_od_pairs():
                     od_matrix=od_matrix,
                     transit_network=transit_network,
                     geometry_calculator=geo_calc,
+                )
+                composite_res = composite_calc.calculate(
+                    t_res.get("score"),
+                    c_res.get("score"),
+                    s_res.get("score_ratio"),
                 )
                 
                 # Trích xuất dữ liệu của opt một cách tối ưu
@@ -94,7 +101,8 @@ def calculate_kpi_all_od_pairs():
                     "kpis": {
                         "transfer_kpi": t_res,
                         "circuity_kpi": c_res,
-                        "spatial_coverage_kpi": s_res
+                        "spatial_coverage_kpi": s_res,
+                        "composite_kpi": composite_res,
                     }
                 })
             
