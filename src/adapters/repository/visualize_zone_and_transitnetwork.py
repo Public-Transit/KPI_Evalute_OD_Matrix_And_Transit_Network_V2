@@ -76,6 +76,16 @@ class VisualizeZoneAndTransitNetwork:
         ax.legend(by_label.values(), by_label.keys(), 
                   title="Ghi chú", bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=9)
 
+        # 4. Thêm thông tin Stop Sequences ở phía dưới hình
+        route_info_lines = []
+        for route in transit_network.routes():
+            seq_str = " -> ".join(route.stops_seq())
+            route_info_lines.append(f"{route.id()}: {seq_str}")
+        
+        info_text = "Danh sách Trạm dừng (Stop Sequences):\n" + "\n".join(route_info_lines)
+        plt.figtext(0.5, 0.02, info_text, wrap=True, horizontalalignment='center', fontsize=9, 
+                    bbox=dict(facecolor='lightgrey', alpha=0.3, boxstyle='round,pad=0.5'))
+
         ax.set_aspect('equal', adjustable='datalim')
         if title:
             ax.set_title(title, fontsize=16, pad=20)
@@ -83,7 +93,9 @@ class VisualizeZoneAndTransitNetwork:
             ax.set_title("Bản đồ Tuyến xe & Điểm dừng (Routes & Stops)", fontsize=16, pad=20)
         
         plt.grid(True, linestyle='--', alpha=0.4)
-        plt.tight_layout()
+        
+        # Chừa khoảng trống phía dưới cho text (rect=[left, bottom, right, top])
+        plt.tight_layout(rect=[0, 0.15, 1, 1])
         
         if save_path:
             plt.savefig(save_path, dpi=200)
@@ -163,7 +175,7 @@ class VisualizeZoneAndTransitNetwork:
             
             # Hiệu chỉnh nhẹ theo rad
             # Hiệu chỉnh offset về đúng tỉ lệ Lat/Lon (100,000m ~ 1 degree)
-            offset = 40 / 100000.0 
+            offset = 100 / 100000.0 
 
             dx = d_c.lat() - o_c.lat()
             dy = d_c.lon() - o_c.lon()

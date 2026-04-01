@@ -3,7 +3,8 @@ from src.adapters.repository.fake_repo_grid_3x3 import FakeRepoGrid3x3
 from src.adapters.repository.visualize_zone_and_transitnetwork import VisualizeZoneAndTransitNetwork
 
 def main():
-    repo = FakeRepoGrid3x3(seed=68)
+    repo = FakeRepoGrid3x3(seed=36)
+    #repo = FakeRepoGrid3x3(seed=42)
     
     stops, routes, zones, od_pairs, trips = repo.get()
     od_matrix = repo.get_od_matrix()

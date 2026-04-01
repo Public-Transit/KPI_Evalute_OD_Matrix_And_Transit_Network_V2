@@ -106,7 +106,7 @@ def calculate_kpi_all_routes():
     """
     Tính toán tất cả các chỉ số KPI cho mọi Trip (Chuyến xe) có trong hệ thống.
     """
-    repo = FakeRepoGrid3x3()
+    repo = FakeRepoGrid3x3(seed=36)
     uow = DummyUnitOfWork(repo)
     routing_engine = CombinedRoutingEngine()
     geo_calc = ShapelyGeometryCalculator()

@@ -5,7 +5,7 @@ from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.od_pair import ODPair
 from src.domain.port import IGeometryCalculator
 from src.domain.service.routing import AbstractRouting
-from src.domain.service.spatial import find_intersecting_trip_between_candidatetrip_and_trip
+from src.domain.model.trip import CandidateTrip, Leg
 from src.domain.service.trip_kpi_caculator.trip_kpi_base import TripKPICalculator
 
 
@@ -34,8 +34,8 @@ def find_trip_served_od_pair_in_transit_network_makeby_routes_in_trip(
             route_ids_in_trip.add(route.id())
             routes_objs.append(route)
 
-    sub_transitnetwork = TransitNetwork(transit_network.stops(), routes_objs)
-
+    #sub_transitnetwork = TransitNetwork(transit_network.stops(), routes_objs)
+    sub_transitnetwork = transit_network
     # --- Bước 2: Tìm cách di chuyển hợp lệ candidate_trips_od từ O đến D trên các route có trong trip ---
     candidate_trips_od = routing_engine.find_candidate_trips_for_od_pair(
         od_pair, od_matrix, sub_transitnetwork, geometry_calculator
@@ -43,14 +43,42 @@ def find_trip_served_od_pair_in_transit_network_makeby_routes_in_trip(
     if not candidate_trips_od:
         return []
 
-    # --- Bước 3: Xét sự giao nhau để sinh ra các trip_subset ---
+    # --- Bước 3: Xét sự giao nhau để sinh ra các phần nhỏ (partial overlaps) ---
     served_trip_subsets = []
+    
     for candidate_trip in candidate_trips_od:
-        intersecting_trips = find_intersecting_trip_between_candidatetrip_and_trip(
-            candidate_trip, trip, transit_network
-        )
-        if intersecting_trips:
-            served_trip_subsets.extend(intersecting_trips)
+        overlapped_legs = []
+        for c_leg in candidate_trip.candidate_legs:
+            for t_leg in trip.legs:
+                if c_leg.route_id == t_leg.route_id:
+                    route = transit_network.get_route_by_id(t_leg.route_id)
+                    if not route: continue
+                    seq = route.stops_seq()
+                    
+                    try:
+                        t_start = seq.index(t_leg.board_stop_id)
+                        t_end = seq.index(t_leg.alight_stop_id)
+                    except ValueError:
+                        continue
+                        
+                    if t_start > t_end: t_start, t_end = t_end, t_start
+                    
+                    c_boards = [seq.index(s) for s in c_leg.possible_boarding_stop_ids if s in seq]
+                    c_alights = [seq.index(s) for s in c_leg.possible_alighting_stop_ids if s in seq]
+                    if not c_boards or not c_alights: 
+                        continue
+                        
+                    c_start = min(c_boards)
+                    c_end = max(c_alights)
+                    
+                    i_start = max(t_start, c_start)
+                    i_end = min(t_end, c_end)
+                    
+                    if i_start <= i_end:
+                        overlapped_legs.append(Leg(route.id(), seq[i_start], seq[i_end]))
+                        
+        if overlapped_legs:
+            served_trip_subsets.append(Trip(legs=overlapped_legs))
 
     return served_trip_subsets
 
