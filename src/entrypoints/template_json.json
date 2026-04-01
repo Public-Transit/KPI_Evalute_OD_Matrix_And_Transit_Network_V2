@@ -1,5 +1,51 @@
 {
     "od_pair": "OD1",
+    "aggregated_kpis": {
+        "transfer_kpi": {
+            "score": 66.66666666666667,
+            "score_scale": "0_100_higher_is_better",
+            "is_valid": true,
+            "reason": null,
+            "best_score": 66.66666666666667,
+            "weighted_average_score": 66.66666666666667,
+            "parameters": {
+                "alpha": 0.7
+            }
+        },
+        "circuity_kpi": {
+            "score": 40.00000000000001,
+            "score_scale": "0_100_higher_is_better",
+            "is_valid": true,
+            "reason": null,
+            "best_score": 40.00000000000001,
+            "weighted_average_score": 40.00000000000001,
+            "parameters": {
+                "alpha": 0.7
+            }
+        },
+        "spatial_coverage_kpi": {
+            "score": 25.0,
+            "score_scale": "0_100_higher_is_better",
+            "is_valid": true,
+            "reason": null,
+            "best_score": 25.0,
+            "weighted_average_score": 25.0,
+            "parameters": {
+                "alpha": 0.7
+            }
+        },
+        "composite_kpi": {
+            "score": 46.75,
+            "score_scale": "0_100_higher_is_better",
+            "is_valid": true,
+            "reason": null,
+            "best_score": 46.75,
+            "weighted_average_score": 46.75,
+            "parameters": {
+                "alpha": 0.7
+            }
+        }
+    },
     "options": [
         {
             "candidate_routes": [
