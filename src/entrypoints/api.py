@@ -6,7 +6,7 @@ from src.service_layer.unit_of_work import DummyUnitOfWork
 from src.adapters.repository.fake_reapository import FakeRepository
 from src.adapters.repository.visualize_zone_and_transitnetwork import VisualizeZoneAndTransitNetwork
 from src.domain.service.routing import CombinedRoutingEngine
-from src.service_layer.service import routing_services
+from src.service_layer.service import routing_services, trip_kpi_services
 
 from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
 from src.domain.model.transit_network import TransitNetwork
@@ -14,19 +14,13 @@ from src.domain.model.od_matrix import ODMatrix
 from src.domain.service.kpi_caculator.circuity_kpi import CircuityIndexCalculator
 from src.domain.service.kpi_caculator.spatial_coverage_kpi import SpatialCoverageCalculator
 from src.domain.service.kpi_caculator.transfer_kpi import TransferRateCalculator
+from src.domain.service.trip_kpi_caculator.total_potential_demand_in_trip import TotalPotentialDemandInTripCalculator
 from src.domain.service.filter import MinDistanceCandidateTripFilterV2
 
 
-from src.adapters.repository.fake_repo_l1 import FakeRepoL1
-from src.adapters.repository.fake_repo_l2 import FakeRepoL2
-from src.adapters.repository.fake_repo_l3 import FakeRepoL3
-from src.adapters.repository.fake_repo_l4 import FakeRepoL4
-from src.adapters.repository.fake_repo_l5 import FakeRepoL5
-from src.adapters.repository.fake_repo_f1 import FakeRepoF1
-from src.adapters.repository.fake_repo_f2 import FakeRepoF2
-from src.adapters.repository.fake_repo_f3 import FakeRepoF3
-from src.adapters.repository.fake_repo_f4 import FakeRepoF4
-from src.adapters.repository.fake_repo_f5 import FakeRepoF5
+
+from src.adapters.repository.fake_repo_grid_3x3 import FakeRepoGrid3x3
+
 
 
 app = FastAPI(title="Transit Network KPI API", description="API định tuyến và đánh giá KPI mạng lưới giao thông")
@@ -37,12 +31,12 @@ class RouteUpdateRequest(BaseModel):
 
 # Tham chiếu mặc định tới file config/database
 DEFAULT_REFERENCE_PATH = "path/to/data/matsim"
-@app.post("/api/kpi/calculate-all")
+@app.post("/api/kpi/calculate-all-od-pairs")
 def calculate_kpi_all_od_pairs():
     """
     Tính toàn bộ các chỉ số KPI bằng KPI Calculator sau khi tìm đường qua GenerateODRoutingResultService.
     """
-    repo = FakeRepoL5()
+    repo = FakeRepoGrid3x3()
     uow = DummyUnitOfWork(repo)
     routing_engine = CombinedRoutingEngine()
     filter_engine = MinDistanceCandidateTripFilterV2()
@@ -104,5 +98,33 @@ def calculate_kpi_all_od_pairs():
             })
             
         return {"status": "success", "data": json_results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/kpi/calculate-all-routes")
+def calculate_kpi_all_routes():
+    """
+    Tính toán tất cả các chỉ số KPI cho mọi Trip (Chuyến xe) có trong hệ thống.
+    """
+    repo = FakeRepoGrid3x3()
+    uow = DummyUnitOfWork(repo)
+    routing_engine = CombinedRoutingEngine()
+    geo_calc = ShapelyGeometryCalculator()
+    
+    try:
+        # Khởi tạo các calculators cho Trip
+        kpi_calculators = [
+            TotalPotentialDemandInTripCalculator()
+        ]
+        # Gọi service layer để xử lý batch
+        results = trip_kpi_services.calculate_kpis_for_all_trips(
+            kpi_calculators,
+            uow,
+            routing_engine,
+            geo_calc,
+            DEFAULT_REFERENCE_PATH
+        )
+        
+        return {"status": "success", "data": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
