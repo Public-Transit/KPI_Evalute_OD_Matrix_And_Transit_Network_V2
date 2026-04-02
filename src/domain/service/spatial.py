@@ -4,8 +4,11 @@ from src.domain.model.stop import Stop
 from src.domain.model.od_pair import ODPair
 from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.transit_network import TransitNetwork
-from src.domain.model.trip import Trip
+from src.domain.model.trip import Trip, CandidateTrip
+from src.domain.model.leg import Leg
 from src.domain.port import IGeometryCalculator
+
+import itertools
 
 def find_all_routes_pass_through_zone(zone: Zone, transit_network: TransitNetwork, geometry_calculator: IGeometryCalculator) -> list[Route]:
     """
@@ -81,3 +84,122 @@ def find_closest_stop_to_centroid(zone: Zone, transit_network: TransitNetwork, g
             best_stop = stop
     return best_stop
 
+
+def find_intersecting_trip_between_candidatetrip_and_trip(candidate_trip: CandidateTrip, trip: Trip, transit_network: TransitNetwork) -> list[Trip]:
+    """
+    Tìm ra các trip giao giữa 1 candidate trip và 1 trip thực tế.
+    Áp dụng logic giao cắt tập hợp (interval intersection) trên cùng một Route để xác định điểm biên (kể cả 1 Stop).
+    """
+    c_legs = candidate_trip.candidate_legs
+    t_legs = trip.legs
+    
+    n_c = len(c_legs)
+    n_t = len(t_legs)
+    
+    served_trip_subsets = []
+    
+    # Mappping index các leg của candidate_trip với trip_input
+    for indices in itertools.combinations(range(n_t), n_c):
+        # 1. Các route_id phải khớp nhau
+        match_routes = True
+        for i in range(n_c):
+            if t_legs[indices[i]].route_id != c_legs[i].route_id:
+                match_routes = False
+                break
+        if not match_routes:
+            continue
+            
+        # Tính toán interval giao cho từng cặp (c_leg, t_leg)
+        intersected_intervals = []
+        valid_intersection = True
+        
+        for i in range(n_c):
+            t_leg = t_legs[indices[i]]
+            c_leg = c_legs[i]
+            route = transit_network.get_route_by_id(t_leg.route_id)
+            if not route:
+                valid_intersection = False
+                break
+            
+            seq = route.stops_seq()
+            
+            # Tọa độ interval của t_leg
+            try:
+                t_start = seq.index(t_leg.board_stop_id)
+                t_end = seq.index(t_leg.alight_stop_id)
+            except ValueError:
+                valid_intersection = False
+                break
+                
+            if t_start > t_end:
+                t_start, t_end = t_end, t_start
+                
+            # Tọa độ interval của c_leg (phổ quát cover toàn bộ possible boards đến alights)
+            c_boards = [seq.index(s) for s in c_leg.possible_boarding_stop_ids if s in seq]
+            c_alights = [seq.index(s) for s in c_leg.possible_alighting_stop_ids if s in seq]
+            
+            if not c_boards or not c_alights:
+                valid_intersection = False
+                break
+                
+            c_start = min(c_boards)
+            c_end = max(c_alights)
+            
+            # Phép giao của hai tập hợp (Interval Intersection)
+            i_start = max(t_start, c_start)
+            i_end = min(t_end, c_end)
+
+            # Nếu không có đoạn giao nhau/ giao nhau ở 1 trạm thì bỏ qua
+            if i_start >= i_end:
+                valid_intersection = False
+                break
+                
+            intersected_intervals.append({
+                'route_id': route.id(),
+                'seq': seq,
+                'start_idx': i_start,
+                'end_idx': i_end
+            })
+            
+        if not valid_intersection:
+            continue
+            
+        # 2. Xây dựng Trip từ các đoạn giao
+        if n_c == 1:
+            interval = intersected_intervals[0]
+            subset_trip = Trip(legs=[Leg(
+                interval['route_id'], 
+                interval['seq'][interval['start_idx']], 
+                interval['seq'][interval['end_idx']]
+            )])
+            served_trip_subsets.append(subset_trip)
+            
+        elif n_c == 2:
+            int1 = intersected_intervals[0]
+            int2 = intersected_intervals[1]
+            c_leg1 = c_legs[0]
+            c_leg2 = c_legs[1]
+            
+            # Điểm chuyển tuyến phải thỏa mãn:
+            # 1. Là giao của c_leg1.alights và c_leg2.boards
+            # 2. Nằm trong cả hai interval giao của hai leg
+            transfer_cands = set(c_leg1.possible_alighting_stop_ids).intersection(c_leg2.possible_boarding_stop_ids)
+            
+            for t_stop in transfer_cands:
+                if t_stop not in int1['seq']: continue
+                idx1 = int1['seq'].index(t_stop)
+                if not (int1['start_idx'] <= idx1 <= int1['end_idx']): continue
+                
+                if t_stop not in int2['seq']: continue
+                idx2 = int2['seq'].index(t_stop)
+                if not (int2['start_idx'] <= idx2 <= int2['end_idx']): continue
+                
+                # Nối hai đoạn bằng trạm trung chuyển hợp lệ
+                subset_trip = Trip(legs=[
+                    Leg(int1['route_id'], int1['seq'][int1['start_idx']], t_stop),
+                    Leg(int2['route_id'], t_stop, int2['seq'][int2['end_idx']])
+                ])
+                served_trip_subsets.append(subset_trip)
+                break
+
+    return served_trip_subsets

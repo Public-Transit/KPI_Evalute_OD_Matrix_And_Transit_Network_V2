@@ -30,5 +30,11 @@ class Route:
     def get_shared_stops_with_other_route(self, other_route: Route, geometry_calculator: IGeometryCalculator) -> list[Stop]:
         return geometry_calculator.get_shared_stops_two_routes(self, other_route)
 
+    def get_start_stop_id(self) -> str:
+        return self._stops[0]
+    
+    def get_end_stop_id(self) -> str:
+        return self._stops[-1]
+
 
         
