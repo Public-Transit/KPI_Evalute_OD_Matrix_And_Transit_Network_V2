@@ -62,7 +62,7 @@ def _fake_batch_route_all_od_pairs(*args, **kwargs):
 
 
 def test_calculate_kpi_all_od_pairs_returns_summary_and_sorted_route_options(monkeypatch):
-    monkeypatch.setattr(api, "FakeRepoL5", FakeRepoForODAggregationApi)
+    monkeypatch.setattr(api, "FakeRepoGrid3x3", FakeRepoForODAggregationApi)
     monkeypatch.setattr(api, "ShapelyGeometryCalculator", MockGeometryCalculator)
     monkeypatch.setattr(
         api.routing_services,

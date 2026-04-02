@@ -150,7 +150,7 @@ def find_intersecting_trip_between_candidatetrip_and_trip(candidate_trip: Candid
             i_end = min(t_end, c_end)
 
             # Nếu không có đoạn giao nhau/ giao nhau ở 1 trạm thì bỏ qua
-            if i_start >= i_end:
+            if i_start > i_end:
                 valid_intersection = False
                 break
                 
@@ -203,3 +203,4 @@ def find_intersecting_trip_between_candidatetrip_and_trip(candidate_trip: Candid
                 break
 
     return served_trip_subsets
+

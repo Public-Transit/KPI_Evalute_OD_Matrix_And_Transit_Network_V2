@@ -5,30 +5,26 @@ from typing import Literal
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from src.service_layer.unit_of_work import DummyUnitOfWork
-from src.adapters.repository.fake_reapository import FakeRepository
-# from src.adapters.repository.visualize_zone_and_transitnetwork import VisualizeZoneAndTransitNetwork
-from src.domain.service.routing import CombinedRoutingEngine
-from src.service_layer.service import routing_services, trip_kpi_services
-
 from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
-from src.domain.model.transit_network import TransitNetwork
-from src.domain.model.od_matrix import ODMatrix
-from src.domain.service.kpi_caculator.circuity_kpi import CircuityIndexCalculator
-from src.domain.service.kpi_caculator.spatial_coverage_kpi import SpatialCoverageCalculator
-from src.domain.service.kpi_caculator.transfer_kpi import TransferRateCalculator
-from src.domain.service.trip_kpi_caculator.total_potential_demand_in_trip import TotalPotentialDemandInTripCalculator
-from src.domain.service.filter import MinDistanceCandidateTripFilterV2
-
-
-
 from src.adapters.repository.fake_repo_grid_3x3 import FakeRepoGrid3x3
-from src.adapters.repository.fake_repo_totalpotentialdemand_case1 import FakeRepoTotalPotentialDemandCase1
-from src.adapters.repository.fake_repo_totalpotentialdemand_case2 import FakeRepoTotalPotentialDemandCase2
-from src.adapters.repository.fake_repo_totalpotentialdemand_case3 import FakeRepoTotalPotentialDemandCase3
-from src.adapters.repository.fake_repo_totalpotentialdemand_case4 import FakeRepoTotalPotentialDemandCase4
-from src.adapters.repository.fake_repo_totalpotentialdemand_case5 import FakeRepoTotalPotentialDemandCase5
-
+from src.domain.model.od_matrix import ODMatrix
+from src.domain.model.transit_network import TransitNetwork
+from src.domain.service.aggregate.composite_quality_index import (
+    CompositeQualityIndexCalculator,
+)
+from src.domain.service.aggregate.od_kpi_aggregator import ODKPIAggregator
+from src.domain.service.filter import MinDistanceCandidateTripFilterV2
+from src.domain.service.kpi_caculator.circuity_kpi import CircuityIndexCalculator
+from src.domain.service.kpi_caculator.spatial_coverage_kpi import (
+    SpatialCoverageCalculator,
+)
+from src.domain.service.kpi_caculator.transfer_kpi import TransferRateCalculator
+from src.domain.service.routing import CombinedRoutingEngine
+from src.domain.service.trip_kpi_caculator.total_potential_demand_in_trip import (
+    TotalPotentialDemandInTripCalculator,
+)
+from src.service_layer.service import routing_services, trip_kpi_services
+from src.service_layer.unit_of_work import DummyUnitOfWork
 
 
 app = FastAPI(
@@ -129,8 +125,8 @@ class CalculateAllKPIResponse(BaseModel):
                             {
                                 "option_id": "OPT1",
                                 "path": {
-                                    "route_sequence": ["Tuyen R1"],
-                                    "stop_sequence": ["Tram A", "Tram C"],
+                                    "route_sequence": ["R1"],
+                                    "stop_sequence": ["S1", "S3"],
                                 },
                                 "metrics": {
                                     "composite_score": 67.08333333333334,
@@ -147,6 +143,75 @@ class CalculateAllKPIResponse(BaseModel):
     }
 
 
+class TripSummaryScoresResponse(BaseModel):
+    total_potential_demand: float | None = Field(
+        ..., description="Total potential OD demand served by this trip."
+    )
+
+
+class TripSummaryResponse(BaseModel):
+    is_valid: bool = Field(
+        ..., description="Whether the trip-level summary could be calculated."
+    )
+    reason: str | None = Field(
+        ..., description="Reason returned when the trip-level summary is invalid."
+    )
+    scores: TripSummaryScoresResponse
+
+
+class ServedODPairResponse(BaseModel):
+    od_pair_id: str
+    demand: float
+    board_stop: str
+    alight_stop: str
+
+
+class TripKPIResultResponse(BaseModel):
+    trip_id: str
+    summary: TripSummaryResponse
+    path: RoutePathResponse
+    served_od_pairs: list[ServedODPairResponse]
+
+
+class CalculateAllRoutesKPIResponse(BaseModel):
+    status: Literal["success"] = Field(
+        ..., description="Processing status of the API response."
+    )
+    data: list[TripKPIResultResponse]
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "status": "success",
+                "data": [
+                    {
+                        "trip_id": "Trip_1",
+                        "summary": {
+                            "is_valid": True,
+                            "reason": None,
+                            "scores": {
+                                "total_potential_demand": 120.0,
+                            },
+                        },
+                        "path": {
+                            "route_sequence": ["R1"],
+                            "stop_sequence": ["S1", "S4"],
+                        },
+                        "served_od_pairs": [
+                            {
+                                "od_pair_id": "OD1",
+                                "demand": 120.0,
+                                "board_stop": "S1",
+                                "alight_stop": "S4",
+                            }
+                        ],
+                    }
+                ],
+            }
+        }
+    }
+
+
 DEFAULT_REFERENCE_PATH = "path/to/data/matsim"
 
 
@@ -154,6 +219,15 @@ def _coerce_metric_value(value):
     if isinstance(value, bool) or not isinstance(value, Real):
         return None
     return value
+
+
+def _coerce_transfer_count(value):
+    numeric_value = _coerce_metric_value(value)
+    if numeric_value is None:
+        return None
+    if float(numeric_value).is_integer():
+        return int(numeric_value)
+    return None
 
 
 def _build_summary(aggregated_kpis: dict) -> dict:
@@ -213,11 +287,6 @@ def _sort_and_number_route_options(route_options: list[dict]) -> list[dict]:
 def calculate_kpi_all_od_pairs() -> CalculateAllKPIResponse:
     """
     Calculate concise KPI results for all OD pairs.
-
-    Response shape:
-    - `od_pair_id`: OD pair identifier
-    - `summary`: OD-level validity and normalized scores
-    - `route_options`: representative route options sorted by composite score
     """
     repo = FakeRepoGrid3x3()
     uow = DummyUnitOfWork(repo)
@@ -284,7 +353,7 @@ def calculate_kpi_all_od_pairs() -> CalculateAllKPIResponse:
                             "composite_score": _coerce_metric_value(
                                 composite_result.get("score")
                             ),
-                            "transfer_count": _coerce_metric_value(
+                            "transfer_count": _coerce_transfer_count(
                                 transfer_result.get("score")
                             ),
                             "circuity_index": _coerce_metric_value(
@@ -308,34 +377,33 @@ def calculate_kpi_all_od_pairs() -> CalculateAllKPIResponse:
             )
 
         return {"status": "success", "data": json_results}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
-@app.post("/api/kpi/calculate-all-routes")
-def calculate_kpi_all_routes():
+
+@app.post(
+    "/api/kpi/calculate-all-routes",
+    response_model=CalculateAllRoutesKPIResponse,
+    summary="Calculate KPI summary for all trips",
+    response_description="Concise trip-level KPI results grouped by trip.",
+)
+def calculate_kpi_all_routes() -> CalculateAllRoutesKPIResponse:
     """
-    Tính toán tất cả các chỉ số KPI cho mọi Trip (Chuyến xe) có trong hệ thống.
+    Calculate concise trip-level KPI results for all trips.
     """
-    # repo = FakeRepoGrid3x3(seed=36)
-    repo = FakeRepoTotalPotentialDemandCase1()
+    repo = FakeRepoGrid3x3()
     uow = DummyUnitOfWork(repo)
     routing_engine = CombinedRoutingEngine()
     geo_calc = ShapelyGeometryCalculator()
-    
+
     try:
-        # Khởi tạo các calculators cho Trip
-        kpi_calculators = [
-            TotalPotentialDemandInTripCalculator()
-        ]
-        # Gọi service layer để xử lý batch
         results = trip_kpi_services.calculate_kpis_for_all_trips(
-            kpi_calculators,
+            [TotalPotentialDemandInTripCalculator()],
             uow,
             routing_engine,
             geo_calc,
-            DEFAULT_REFERENCE_PATH
+            DEFAULT_REFERENCE_PATH,
         )
-        
         return {"status": "success", "data": results}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))

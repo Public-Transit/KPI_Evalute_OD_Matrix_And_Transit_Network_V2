@@ -52,7 +52,7 @@ class LowCoverageGeometryCalculator(MockGeometryCalculator):
 
 
 def test_calculate_kpi_all_od_pairs_returns_concise_single_option_schema(monkeypatch):
-    monkeypatch.setattr(api, "FakeRepoL5", FakeRepoForApi)
+    monkeypatch.setattr(api, "FakeRepoGrid3x3", FakeRepoForApi)
     monkeypatch.setattr(api, "ShapelyGeometryCalculator", MockGeometryCalculator)
     monkeypatch.setattr(api.routing_services, "batch_route_all_od_pairs", _fake_batch_route_all_od_pairs)
 
@@ -93,7 +93,7 @@ def test_calculate_kpi_all_od_pairs_returns_concise_single_option_schema(monkeyp
 def test_calculate_kpi_all_od_pairs_returns_invalid_summary_when_all_options_filtered(
     monkeypatch,
 ):
-    monkeypatch.setattr(api, "FakeRepoL5", FakeRepoForApi)
+    monkeypatch.setattr(api, "FakeRepoGrid3x3", FakeRepoForApi)
     monkeypatch.setattr(api, "ShapelyGeometryCalculator", LowCoverageGeometryCalculator)
     monkeypatch.setattr(api.routing_services, "batch_route_all_od_pairs", _fake_batch_route_all_od_pairs)
 
@@ -118,6 +118,7 @@ def test_calculate_kpi_all_od_pairs_returns_invalid_summary_when_all_options_fil
     assert option["metrics"]["circuity_index"] == pytest.approx(1.5)
     assert option["metrics"]["coverage_ratio"] == pytest.approx(0.01)
     assert option["metrics"]["composite_score"] is not None
+
 
 def test_openapi_declares_concise_response_contract():
     openapi_schema = api.app.openapi()

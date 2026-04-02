@@ -1,47 +1,112 @@
 # src/service_layer/service/trip_kpi_services.py
-from src.service_layer.unit_of_work import AbstractUnitOfWork
-from src.domain.model.transit_network import TransitNetwork
-from src.domain.model.od_matrix import ODMatrix
-from src.domain.service.trip_kpi_caculator.trip_kpi_base import TripKPICalculator
+from numbers import Real
+
 from src.domain.port import IGeometryCalculator
 from src.domain.service.routing import AbstractRouting
+from src.domain.service.trip_kpi_caculator.trip_kpi_base import TripKPICalculator
+from src.service_layer.unit_of_work import AbstractUnitOfWork
+
+
+def _build_trip_path(trip) -> dict[str, list[str]]:
+    if not trip.legs:
+        return {
+            "route_sequence": [],
+            "stop_sequence": [],
+        }
+
+    return {
+        "route_sequence": [leg.route_id for leg in trip.legs],
+        "stop_sequence": [leg.board_stop_id for leg in trip.legs]
+        + [trip.legs[-1].alight_stop_id],
+    }
+
+
+def _coerce_numeric(value) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, Real):
+        return None
+    return float(value)
+
+
+def _build_trip_summary(total_demand: float | None) -> dict:
+    return {
+        "is_valid": total_demand is not None,
+        "reason": None if total_demand is not None else "Trip KPI could not be calculated.",
+        "scores": {
+            "total_potential_demand": total_demand,
+        },
+    }
+
+
+def _extract_total_potential_demand_result(kpi_result) -> tuple[float | None, list[dict]]:
+    if not isinstance(kpi_result, dict):
+        return None, []
+
+    total_demand = _coerce_numeric(kpi_result.get("total_demand"))
+    served_od_pairs = kpi_result.get("served_od_details")
+    if not isinstance(served_od_pairs, list):
+        served_od_pairs = []
+
+    return total_demand, served_od_pairs
+
+
+def _trip_sort_key(result: dict) -> tuple[bool, float]:
+    total_demand = result["summary"]["scores"]["total_potential_demand"]
+    if total_demand is None:
+        return True, 0.0
+    return False, -float(total_demand)
+
 
 def calculate_kpis_for_all_trips(
     kpi_calculators: list[TripKPICalculator],
     uow: AbstractUnitOfWork,
     routing_engine: AbstractRouting,
     geometry_calculator: IGeometryCalculator,
-    reference_path: str
+    reference_path: str,
 ) -> list[dict]:
     """
-    Service layer function to calculate KPIs for all trips in the repository.
+    Calculate concise trip-level KPI results for every trip in the repository.
     """
     with uow:
         stops, routes, zones, od_pairs, trips = uow.repo.get(reference_path)
-        transit_network = TransitNetwork(stops, routes)
-        od_matrix = ODMatrix(od_pairs, zones)
-        
+        transit_network_factory = getattr(uow.repo, "get_transit_network", None)
+        od_matrix_factory = getattr(uow.repo, "get_od_matrix", None)
+        transit_network = transit_network_factory() if callable(transit_network_factory) else None
+        od_matrix = od_matrix_factory() if callable(od_matrix_factory) else None
+
+        if not transit_network or not od_matrix:
+            from src.domain.model.od_matrix import ODMatrix
+            from src.domain.model.transit_network import TransitNetwork
+
+            transit_network = TransitNetwork(stops, routes)
+            od_matrix = ODMatrix(od_pairs, zones)
+
         results = []
-        for index, trip in enumerate(trips):
-            trip_results = {
-                "trip_id": f"Trip_{index + 1}",
-                "route_ids": [leg.route_id for leg in trip.legs],
-                "stops": [leg.board_stop_id for leg in trip.legs] + [trip.legs[-1].alight_stop_id],
-                "kpis": {}
-            }
-            
+        for index, trip in enumerate(trips, start=1):
+            total_demand = None
+            served_od_pairs = []
+
             for calculator in kpi_calculators:
-                # Assuming the calculator class name or a descriptive name can be used as key
-                kpi_name = calculator.__class__.__name__
-                value = calculator.calculate(
+                kpi_result = calculator.calculate(
                     trip,
                     transit_network,
                     od_matrix,
                     routing_engine,
-                    geometry_calculator
+                    geometry_calculator,
                 )
-                trip_results["kpis"][kpi_name] = value
-                
-            results.append(trip_results)
-            
-        return results
+                extracted_total_demand, extracted_served_od_pairs = (
+                    _extract_total_potential_demand_result(kpi_result)
+                )
+                if extracted_total_demand is not None or extracted_served_od_pairs:
+                    total_demand = extracted_total_demand
+                    served_od_pairs = extracted_served_od_pairs
+
+            results.append(
+                {
+                    "trip_id": f"Trip_{index}",
+                    "summary": _build_trip_summary(total_demand),
+                    "path": _build_trip_path(trip),
+                    "served_od_pairs": served_od_pairs,
+                }
+            )
+
+        return sorted(results, key=_trip_sort_key)

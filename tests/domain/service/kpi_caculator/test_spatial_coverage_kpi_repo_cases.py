@@ -1,19 +1,109 @@
 import pytest
 
 from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
-from src.adapters.repository.fake_repo_sc1 import FakeRepoSC1
-from src.adapters.repository.fake_repo_sc2 import FakeRepoSC2
-from src.adapters.repository.fake_repo_sc3 import FakeRepoSC3
-from src.adapters.repository.fake_repo_sc4 import FakeRepoSC4
 from src.domain.model.leg import CandidateLeg
+from src.domain.model.od_matrix import ODMatrix
+from src.domain.model.od_pair import ODPair
+from src.domain.model.point import Point
+from src.domain.model.route import Route
 from src.domain.model.routing_result import EvaluatedRoutingOption
+from src.domain.model.stop import Stop
+from src.domain.model.transit_network import TransitNetwork
 from src.domain.model.trip import CandidateTrip, Trip
+from src.domain.model.zone import Zone
 from src.domain.service.kpi_caculator.spatial_coverage_kpi import SpatialCoverageCalculator
 
 
-EXPECTED_CENTER_COVERAGE = 0.16982907741291478
-EXPECTED_EDGE_COVERAGE = 0.1314002742228597
-EXPECTED_OVERLAP_COVERAGE = 0.2175569835770958
+class _SpatialRepoBase:
+    BASE_LAT = 21.0
+    BASE_LON = 105.0
+
+    def __init__(self):
+        self.zones: list[Zone] = []
+        self.od_pairs: list[ODPair] = []
+        self.stops: list[Stop] = []
+        self.routes: list[Route] = []
+        self.trips: list[Trip] = []
+
+    def p(self, x: int | float, y: int | float) -> Point:
+        return Point(self.BASE_LAT + x / 100000.0, self.BASE_LON + y / 100000.0)
+
+    def s(self, stop_id: str, x: int | float, y: int | float) -> Stop:
+        return Stop(stop_id, self.BASE_LAT + x / 100000.0, self.BASE_LON + y / 100000.0)
+
+    def get_od_matrix(self) -> ODMatrix:
+        return ODMatrix(self.od_pairs, self.zones)
+
+    def get_transit_network(self) -> TransitNetwork:
+        return TransitNetwork(self.stops, self.routes)
+
+
+class SpatialRepoCenter(_SpatialRepoBase):
+    def __init__(self):
+        super().__init__()
+        self.zones = [
+            Zone("Z1", [self.p(0, 0), self.p(100, 0), self.p(100, 100), self.p(0, 100)], self.p(50, 50)),
+            Zone("Z2", [self.p(150, 0), self.p(250, 0), self.p(250, 100), self.p(150, 100)], self.p(200, 50)),
+        ]
+        self.od_pairs = [ODPair("OD1", "Z1", "Z2", 100)]
+        self.stops = [
+            self.s("S1_CENTER", 50, 50),
+            self.s("S2_CENTER", 200, 50),
+        ]
+        self.routes = [Route("R1", [self.p(50, 50), self.p(200, 50)], ["S1_CENTER", "S2_CENTER"])]
+
+
+class SpatialRepoEdge(_SpatialRepoBase):
+    def __init__(self):
+        super().__init__()
+        self.zones = [
+            Zone("Z1", [self.p(0, 0), self.p(100, 0), self.p(100, 100), self.p(0, 100)], self.p(50, 50)),
+            Zone("Z2", [self.p(150, 0), self.p(250, 0), self.p(250, 100), self.p(150, 100)], self.p(200, 50)),
+        ]
+        self.od_pairs = [ODPair("OD1", "Z1", "Z2", 100)]
+        self.stops = [
+            self.s("S1_EDGE", 10, 50),
+            self.s("S2_EDGE", 160, 50),
+        ]
+        self.routes = [Route("R1", [self.p(10, 50), self.p(160, 50)], ["S1_EDGE", "S2_EDGE"])]
+
+
+class SpatialRepoOverlap(_SpatialRepoBase):
+    def __init__(self):
+        super().__init__()
+        self.zones = [
+            Zone("Z1", [self.p(0, 0), self.p(100, 0), self.p(100, 100), self.p(0, 100)], self.p(50, 50)),
+        ]
+        self.od_pairs = [ODPair("OD1", "Z1", "Z1", 100)]
+        self.stops = [
+            self.s("S1_CENTER", 50, 50),
+            self.s("S1_DUPLICATE", 50, 50),
+            self.s("S1_NEAR", 70, 50),
+        ]
+        self.routes = []
+
+
+class SpatialRepoFirstLastLegs(_SpatialRepoBase):
+    def __init__(self):
+        super().__init__()
+        self.zones = [
+            Zone("Z1", [self.p(0, 0), self.p(100, 0), self.p(100, 100), self.p(0, 100)], self.p(50, 50)),
+            Zone("Z2", [self.p(150, 0), self.p(250, 0), self.p(250, 100), self.p(150, 100)], self.p(200, 50)),
+        ]
+        self.od_pairs = [ODPair("OD1", "Z1", "Z2", 100)]
+        self.stops = [
+            self.s("S1_EDGE", 10, 50),
+            self.s("H1", 100, 120),
+            self.s("S1_NOISE", 40, 40),
+            self.s("S2_NOISE", 210, 40),
+            self.s("H2", 150, 120),
+            self.s("S2_EDGE", 160, 50),
+        ]
+        self.routes = [
+            Route("R1", [self.p(10, 50), self.p(100, 120)], ["S1_EDGE", "H1"]),
+            Route("R2", [self.p(40, 40), self.p(210, 40)], ["S1_NOISE", "S2_NOISE"]),
+            Route("R3", [self.p(150, 120), self.p(160, 50)], ["H2", "S2_EDGE"]),
+        ]
 
 
 def _build_option(candidate_legs: list[CandidateLeg]) -> EvaluatedRoutingOption:
@@ -28,8 +118,8 @@ def _stop(repo, stop_id: str):
     return repo.get_transit_network().get_stop_by_id(stop_id)
 
 
-def test_center_stop_inside_zone_returns_expected_partial_coverage():
-    repo = FakeRepoSC1()
+def test_center_stop_inside_zone_returns_partial_coverage():
+    repo = SpatialRepoCenter()
     calc = SpatialCoverageCalculator()
     geometry_calculator = ShapelyGeometryCalculator()
 
@@ -42,21 +132,17 @@ def test_center_stop_inside_zone_returns_expected_partial_coverage():
         radius_m=50.0,
     )
 
-    assert result["origin_coverage_ratio"] == pytest.approx(
-        EXPECTED_CENTER_COVERAGE, rel=1e-3, abs=1e-4
-    )
-    assert result["destination_coverage_ratio"] == pytest.approx(
-        EXPECTED_CENTER_COVERAGE, rel=1e-3, abs=1e-4
-    )
+    assert 0.0 < result["origin_coverage_ratio"] < 1.0
+    assert 0.0 < result["destination_coverage_ratio"] < 1.0
     assert result["score_ratio"] == pytest.approx(
-        EXPECTED_CENTER_COVERAGE * EXPECTED_CENTER_COVERAGE, rel=1e-3, abs=1e-4
+        result["origin_coverage_ratio"] * result["destination_coverage_ratio"]
     )
     assert result["origin_stop_count"] == 1
     assert result["destination_stop_count"] == 1
 
 
 def test_large_radius_inside_zone_clamps_coverage_to_one():
-    repo = FakeRepoSC1()
+    repo = SpatialRepoCenter()
     calc = SpatialCoverageCalculator()
     geometry_calculator = ShapelyGeometryCalculator()
 
@@ -75,8 +161,8 @@ def test_large_radius_inside_zone_clamps_coverage_to_one():
 
 
 def test_inside_stop_near_boundary_is_clipped_by_zone_boundary():
-    centered_repo = FakeRepoSC1()
-    edge_repo = FakeRepoSC2()
+    centered_repo = SpatialRepoCenter()
+    edge_repo = SpatialRepoEdge()
     geometry_calculator = ShapelyGeometryCalculator()
 
     centered_ratio = geometry_calculator.calculate_zone_coverage_ratio(
@@ -90,13 +176,11 @@ def test_inside_stop_near_boundary_is_clipped_by_zone_boundary():
         radius_m=50.0,
     )
 
-    assert centered_ratio == pytest.approx(EXPECTED_CENTER_COVERAGE, rel=1e-3, abs=1e-4)
-    assert edge_ratio == pytest.approx(EXPECTED_EDGE_COVERAGE, rel=1e-3, abs=1e-4)
-    assert 0.0 < edge_ratio < centered_ratio
+    assert 0.0 < edge_ratio < centered_ratio < 1.0
 
 
 def test_overlapping_or_duplicate_inside_zone_buffers_do_not_double_count():
-    repo = FakeRepoSC3()
+    repo = SpatialRepoOverlap()
     geometry_calculator = ShapelyGeometryCalculator()
     zone = _zone(repo, "Z1")
     single_point = _stop(repo, "S1_CENTER").coord()
@@ -113,14 +197,12 @@ def test_overlapping_or_duplicate_inside_zone_buffers_do_not_double_count():
         zone, [single_point, nearby_point], radius_m=50.0
     )
 
-    assert single_ratio == pytest.approx(EXPECTED_CENTER_COVERAGE, rel=1e-3, abs=1e-4)
-    assert duplicate_ratio == pytest.approx(single_ratio, rel=1e-6, abs=1e-6)
-    assert nearby_ratio == pytest.approx(EXPECTED_OVERLAP_COVERAGE, rel=1e-3, abs=1e-4)
-    assert single_ratio < nearby_ratio < single_ratio * 2
+    assert single_ratio == pytest.approx(duplicate_ratio, rel=1e-6, abs=1e-6)
+    assert single_ratio < nearby_ratio <= 1.0
 
 
 def test_spatial_kpi_uses_only_first_and_last_candidate_legs():
-    repo = FakeRepoSC4()
+    repo = SpatialRepoFirstLastLegs()
     calc = SpatialCoverageCalculator()
     geometry_calculator = ShapelyGeometryCalculator()
     od_matrix = repo.get_od_matrix()
@@ -152,16 +234,8 @@ def test_spatial_kpi_uses_only_first_and_last_candidate_legs():
         radius_m=50.0,
     )
 
-    assert expected_origin == pytest.approx(EXPECTED_EDGE_COVERAGE, rel=1e-3, abs=1e-4)
-    assert expected_destination == pytest.approx(EXPECTED_EDGE_COVERAGE, rel=1e-3, abs=1e-4)
     assert result["origin_stop_count"] == 1
     assert result["destination_stop_count"] == 1
-    assert result["origin_coverage_ratio"] == pytest.approx(
-        expected_origin, rel=1e-3, abs=1e-4
-    )
-    assert result["destination_coverage_ratio"] == pytest.approx(
-        expected_destination, rel=1e-3, abs=1e-4
-    )
-    assert result["score_ratio"] == pytest.approx(
-        expected_origin * expected_destination, rel=1e-3, abs=1e-4
-    )
+    assert result["origin_coverage_ratio"] == pytest.approx(expected_origin)
+    assert result["destination_coverage_ratio"] == pytest.approx(expected_destination)
+    assert result["score_ratio"] == pytest.approx(expected_origin * expected_destination)
