@@ -136,21 +136,13 @@ class FakeRepoGrid3x3(AbstractRepository):
 
         # 4. Generate Trips (Hành trình thực tế) for testing KPIs
         self.trips = [
-            # Trip 1: Toàn tuyến R5
-            Trip([Leg("R5", r5_stops[0].id(), r5_stops[-1].id())]),
-
+            Trip([Leg("R1", r1_stops[0].id(), r1_stops[-1].id())]),
+            Trip([Leg("R2", r2_stops[0].id(), r2_stops[-1].id())]),
+            Trip([Leg("R3", r3_stops[0].id(), r3_stops[-1].id())]),
             Trip([Leg("R4", r4_stops[0].id(), r4_stops[-1].id())]),
 
-            Trip([Leg("R3", r3_stops[0].id(), r3_stops[-1].id())]),
-
-            Trip([Leg("R2", r2_stops[0].id(), r2_stops[-1].id())]),
-
-            Trip([Leg("R1", r1_stops[0].id(), r1_stops[-1].id())]),
-            
-            # Trip 2: Một phần R1 (từ Z7 đến Z2)
-            Trip([Leg("R1", r1_stops[0].id(), hubs["Z2"].id())]),
-            
-            # Trip 3: Chuyển tuyến (R2 -> R4)
+            Trip([Leg("R5", r5_stops[0].id(), r5_stops[-1].id())]),
+     
             Trip([
                 Leg("R2", hubs["Z7"].id(), hubs["Z6"].id()),
                 Leg("R4", hubs["Z6"].id(), hubs["Z3"].id())

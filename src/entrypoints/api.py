@@ -20,6 +20,11 @@ from src.domain.service.filter import MinDistanceCandidateTripFilterV2
 
 
 from src.adapters.repository.fake_repo_grid_3x3 import FakeRepoGrid3x3
+from src.adapters.repository.fake_repo_totalpotentialdemand_case1 import FakeRepoTotalPotentialDemandCase1
+from src.adapters.repository.fake_repo_totalpotentialdemand_case2 import FakeRepoTotalPotentialDemandCase2
+from src.adapters.repository.fake_repo_totalpotentialdemand_case3 import FakeRepoTotalPotentialDemandCase3
+from src.adapters.repository.fake_repo_totalpotentialdemand_case4 import FakeRepoTotalPotentialDemandCase4
+from src.adapters.repository.fake_repo_totalpotentialdemand_case5 import FakeRepoTotalPotentialDemandCase5
 
 
 
@@ -106,7 +111,8 @@ def calculate_kpi_all_routes():
     """
     Tính toán tất cả các chỉ số KPI cho mọi Trip (Chuyến xe) có trong hệ thống.
     """
-    repo = FakeRepoGrid3x3(seed=36)
+    # repo = FakeRepoGrid3x3(seed=36)
+    repo = FakeRepoTotalPotentialDemandCase1()
     uow = DummyUnitOfWork(repo)
     routing_engine = CombinedRoutingEngine()
     geo_calc = ShapelyGeometryCalculator()

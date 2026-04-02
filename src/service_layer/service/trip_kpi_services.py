@@ -26,6 +26,7 @@ def calculate_kpis_for_all_trips(
             trip_results = {
                 "trip_id": f"Trip_{index + 1}",
                 "route_ids": [leg.route_id for leg in trip.legs],
+                "stops": [leg.board_stop_id for leg in trip.legs] + [trip.legs[-1].alight_stop_id],
                 "kpis": {}
             }
             

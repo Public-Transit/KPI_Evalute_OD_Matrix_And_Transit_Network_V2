@@ -148,8 +148,9 @@ def find_intersecting_trip_between_candidatetrip_and_trip(candidate_trip: Candid
             # Phép giao của hai tập hợp (Interval Intersection)
             i_start = max(t_start, c_start)
             i_end = min(t_end, c_end)
-            
-            if i_start > i_end:
+
+            # Nếu không có đoạn giao nhau/ giao nhau ở 1 trạm thì bỏ qua
+            if i_start >= i_end:
                 valid_intersection = False
                 break
                 

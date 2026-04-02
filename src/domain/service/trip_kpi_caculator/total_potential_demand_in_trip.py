@@ -74,7 +74,8 @@ def find_trip_served_od_pair_in_transit_network_makeby_routes_in_trip(
                     i_start = max(t_start, c_start)
                     i_end = min(t_end, c_end)
                     
-                    if i_start <= i_end:
+                    # Nếu không có đoạn giao nhau/ giao nhau ở 1 trạm thì bỏ qua
+                    if i_start < i_end:
                         overlapped_legs.append(Leg(route.id(), seq[i_start], seq[i_end]))
                         
         if overlapped_legs:
