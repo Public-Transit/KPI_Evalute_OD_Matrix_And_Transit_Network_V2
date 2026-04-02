@@ -1,6 +1,9 @@
 # src/entrypoints/api.py
+from numbers import Real
+from typing import Literal
+
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
 from src.adapters.repository.fake_repo_f1 import FakeRepoF1
@@ -44,13 +47,183 @@ class RouteUpdateRequest(BaseModel):
     new_stops: list[str]
 
 
+class SummaryScoresResponse(BaseModel):
+    composite: float | None = Field(
+        ..., description="OD-level composite score on a 0-100 scale."
+    )
+    transfer: float | None = Field(
+        ..., description="OD-level transfer score normalized to 0-100."
+    )
+    circuity: float | None = Field(
+        ..., description="OD-level circuity score normalized to 0-100."
+    )
+    spatial_coverage: float | None = Field(
+        ..., description="OD-level spatial coverage score normalized to 0-100."
+    )
+
+
+class SummaryResponse(BaseModel):
+    is_valid: bool = Field(
+        ..., description="Whether the OD-level summary could be calculated."
+    )
+    reason: str | None = Field(
+        ..., description="Reason returned when the OD-level summary is invalid."
+    )
+    scores: SummaryScoresResponse
+
+
+class RoutePathResponse(BaseModel):
+    route_sequence: list[str] = Field(
+        ..., description="Representative route sequence for this option."
+    )
+    stop_sequence: list[str] = Field(
+        ..., description="Representative stop sequence for this option."
+    )
+
+
+class RouteMetricsResponse(BaseModel):
+    composite_score: float | None = Field(
+        ..., description="Composite score for the route option."
+    )
+    transfer_count: int | None = Field(
+        ..., description="Raw transfer count for the route option."
+    )
+    circuity_index: float | None = Field(
+        ..., description="Raw circuity index for the route option."
+    )
+    coverage_ratio: float | None = Field(
+        ..., description="Raw spatial coverage ratio for the route option."
+    )
+
+
+class RouteOptionResponse(BaseModel):
+    option_id: str = Field(..., description="Stable display identifier after sorting.")
+    path: RoutePathResponse
+    metrics: RouteMetricsResponse
+
+
+class ODKPIResultResponse(BaseModel):
+    od_pair_id: str = Field(..., description="Identifier of the OD pair.")
+    summary: SummaryResponse
+    route_options: list[RouteOptionResponse]
+
+
+class CalculateAllKPIResponse(BaseModel):
+    status: Literal["success"] = Field(
+        ..., description="Processing status of the API response."
+    )
+    data: list[ODKPIResultResponse]
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "status": "success",
+                "data": [
+                    {
+                        "od_pair_id": "OD1",
+                        "summary": {
+                            "is_valid": True,
+                            "reason": None,
+                            "scores": {
+                                "composite": 46.75,
+                                "transfer": 66.66666666666667,
+                                "circuity": 40.0,
+                                "spatial_coverage": 25.0,
+                            },
+                        },
+                        "route_options": [
+                            {
+                                "option_id": "OPT1",
+                                "path": {
+                                    "route_sequence": ["Tuyen R1"],
+                                    "stop_sequence": ["Tram A", "Tram C"],
+                                },
+                                "metrics": {
+                                    "composite_score": 67.08333333333334,
+                                    "transfer_count": 0,
+                                    "circuity_index": 1.2,
+                                    "coverage_ratio": 0.25,
+                                },
+                            }
+                        ],
+                    }
+                ],
+            }
+        }
+    }
+
+
 DEFAULT_REFERENCE_PATH = "path/to/data/matsim"
 
 
-@app.post("/api/kpi/calculate-all")
-def calculate_kpi_all_od_pairs():
+def _coerce_metric_value(value):
+    if isinstance(value, bool) or not isinstance(value, Real):
+        return None
+    return value
+
+
+def _build_summary(aggregated_kpis: dict) -> dict:
+    composite_kpi = aggregated_kpis["composite_kpi"]
+    return {
+        "is_valid": composite_kpi["is_valid"],
+        "reason": composite_kpi["reason"],
+        "scores": {
+            "composite": aggregated_kpis["composite_kpi"]["score"],
+            "transfer": aggregated_kpis["transfer_kpi"]["score"],
+            "circuity": aggregated_kpis["circuity_kpi"]["score"],
+            "spatial_coverage": aggregated_kpis["spatial_coverage_kpi"]["score"],
+        },
+    }
+
+
+def _build_path_payload(evaluated_option) -> dict:
+    representative_trip = evaluated_option.representative_trip()
+    if not representative_trip or not representative_trip.legs:
+        return {
+            "route_sequence": [],
+            "stop_sequence": [],
+        }
+
+    return {
+        "route_sequence": [leg.route_id for leg in representative_trip.legs],
+        "stop_sequence": [leg.board_stop_id for leg in representative_trip.legs]
+        + [representative_trip.legs[-1].alight_stop_id],
+    }
+
+
+def _route_option_sort_key(route_option: dict) -> tuple[bool, float]:
+    composite_score = route_option["metrics"]["composite_score"]
+    if composite_score is None:
+        return True, 0.0
+    return False, -float(composite_score)
+
+
+def _sort_and_number_route_options(route_options: list[dict]) -> list[dict]:
+    sorted_route_options = sorted(route_options, key=_route_option_sort_key)
+    return [
+        {
+            "option_id": f"OPT{index}",
+            "path": route_option["path"],
+            "metrics": route_option["metrics"],
+        }
+        for index, route_option in enumerate(sorted_route_options, start=1)
+    ]
+
+
+@app.post(
+    "/api/kpi/calculate-all",
+    response_model=CalculateAllKPIResponse,
+    summary="Calculate KPI summary for all OD pairs",
+    response_description="Concise OD KPI results grouped by OD pair.",
+)
+def calculate_kpi_all_od_pairs() -> CalculateAllKPIResponse:
     """
-    Calculate all KPIs after generating routing options for all OD pairs.
+    Calculate concise KPI results for all OD pairs.
+
+    Response shape:
+    - `od_pair_id`: OD pair identifier
+    - `summary`: OD-level validity and normalized scores
+    - `route_options`: representative route options sorted by composite score
     """
     repo = FakeRepoL5()
     uow = DummyUnitOfWork(repo)
@@ -79,7 +252,7 @@ def calculate_kpi_all_od_pairs():
 
         json_results = []
         for routing_result in results:
-            options_data = []
+            route_options_data = []
             trip_kpi_results = []
 
             for evaluated_option in routing_result.evaluated_routing_options():
@@ -110,33 +283,23 @@ def calculate_kpi_all_od_pairs():
                 }
                 trip_kpi_results.append(option_kpis)
 
-                candidate_trip = evaluated_option.candidate_trip()
-                candidate_routes = (
-                    [leg.route_id for leg in candidate_trip.candidate_legs]
-                    if candidate_trip and candidate_trip.candidate_legs
-                    else []
-                )
-
-                representative_trip = evaluated_option.representative_trip()
-                if representative_trip and representative_trip.legs:
-                    representative_routes = [
-                        leg.route_id for leg in representative_trip.legs
-                    ]
-                    representative_stops = [
-                        leg.board_stop_id for leg in representative_trip.legs
-                    ] + [representative_trip.legs[-1].alight_stop_id]
-                else:
-                    representative_routes = []
-                    representative_stops = []
-
-                options_data.append(
+                route_options_data.append(
                     {
-                        "candidate_routes": candidate_routes,
-                        "representative_trip": {
-                            "routes": representative_routes,
-                            "stops": representative_stops,
+                        "path": _build_path_payload(evaluated_option),
+                        "metrics": {
+                            "composite_score": _coerce_metric_value(
+                                composite_result.get("score")
+                            ),
+                            "transfer_count": _coerce_metric_value(
+                                transfer_result.get("score")
+                            ),
+                            "circuity_index": _coerce_metric_value(
+                                circuity_result.get("score")
+                            ),
+                            "coverage_ratio": _coerce_metric_value(
+                                spatial_result.get("score_ratio")
+                            ),
                         },
-                        "kpis": option_kpis,
                     }
                 )
 
@@ -144,9 +307,9 @@ def calculate_kpi_all_od_pairs():
 
             json_results.append(
                 {
-                    "od_pair": routing_result.od_pair_id(),
-                    "aggregated_kpis": aggregated_kpis,
-                    "options": options_data,
+                    "od_pair_id": routing_result.od_pair_id(),
+                    "summary": _build_summary(aggregated_kpis),
+                    "route_options": _sort_and_number_route_options(route_options_data),
                 }
             )
 

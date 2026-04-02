@@ -46,7 +46,12 @@ def _fake_batch_route_all_od_pairs(*args, **kwargs):
     return [ODRoutingResultV2("OD1", [option])]
 
 
-def test_calculate_kpi_all_od_pairs_returns_composite_kpi(monkeypatch):
+class LowCoverageGeometryCalculator(MockGeometryCalculator):
+    def calculate_zone_coverage_ratio(self, zone, points, radius_m):
+        return 0.1
+
+
+def test_calculate_kpi_all_od_pairs_returns_concise_single_option_schema(monkeypatch):
     monkeypatch.setattr(api, "FakeRepoL5", FakeRepoForApi)
     monkeypatch.setattr(api, "ShapelyGeometryCalculator", MockGeometryCalculator)
     monkeypatch.setattr(api.routing_services, "batch_route_all_od_pairs", _fake_batch_route_all_od_pairs)
@@ -54,21 +59,89 @@ def test_calculate_kpi_all_od_pairs_returns_composite_kpi(monkeypatch):
     payload = api.calculate_kpi_all_od_pairs()
 
     assert payload["status"] == "success"
-    option = payload["data"][0]["options"][0]
-    kpis = option["kpis"]
+    od_result = payload["data"][0]
+    option = od_result["route_options"][0]
+    summary = od_result["summary"]
 
-    assert "transfer_kpi" in kpis
-    assert "circuity_kpi" in kpis
-    assert "spatial_coverage_kpi" in kpis
-    assert "composite_kpi" in kpis
+    assert set(od_result) == {"od_pair_id", "summary", "route_options"}
+    assert od_result["od_pair_id"] == "OD1"
+    assert summary["is_valid"] is True
+    assert summary["reason"] is None
+    assert set(summary["scores"]) == {
+        "composite",
+        "transfer",
+        "circuity",
+        "spatial_coverage",
+    }
 
-    composite_kpi = kpis["composite_kpi"]
-    assert composite_kpi["is_valid"] is True
-    assert composite_kpi["score"] == pytest.approx(
-        composite_kpi["weighted_scores"]["transfer"]
-        + composite_kpi["weighted_scores"]["circuity"]
-        + composite_kpi["weighted_scores"]["service_coverage"]
-    )
-    assert composite_kpi["raw_inputs"]["transfer_count"] == kpis["transfer_kpi"]["score"]
-    assert composite_kpi["raw_inputs"]["circuity_index"] == kpis["circuity_kpi"]["score"]
-    assert composite_kpi["raw_inputs"]["service_coverage_ratio"] == kpis["spatial_coverage_kpi"]["score_ratio"]
+    assert option["option_id"] == "OPT1"
+    assert option["path"]["route_sequence"] == ["R1"]
+    assert option["path"]["stop_sequence"] == ["S1", "S2"]
+    assert option["metrics"]["transfer_count"] == 0
+    assert option["metrics"]["circuity_index"] == pytest.approx(1.5)
+    assert option["metrics"]["coverage_ratio"] == pytest.approx(0.25)
+    assert option["metrics"]["composite_score"] == pytest.approx(summary["scores"]["composite"])
+
+    assert "aggregated_kpis" not in od_result
+    assert "options" not in od_result
+    assert "candidate_routes" not in option
+    assert "representative_trip" not in option
+    assert "best_score" not in summary
+    assert "weighted_average_score" not in summary
+
+
+def test_calculate_kpi_all_od_pairs_returns_invalid_summary_when_all_options_filtered(
+    monkeypatch,
+):
+    monkeypatch.setattr(api, "FakeRepoL5", FakeRepoForApi)
+    monkeypatch.setattr(api, "ShapelyGeometryCalculator", LowCoverageGeometryCalculator)
+    monkeypatch.setattr(api.routing_services, "batch_route_all_od_pairs", _fake_batch_route_all_od_pairs)
+
+    payload = api.calculate_kpi_all_od_pairs()
+
+    assert payload["status"] == "success"
+    od_result = payload["data"][0]
+    summary = od_result["summary"]
+    option = od_result["route_options"][0]
+
+    assert summary["is_valid"] is False
+    assert summary["reason"] == "No valid trips after hard-threshold filtering"
+    assert summary["scores"] == {
+        "composite": None,
+        "transfer": None,
+        "circuity": None,
+        "spatial_coverage": None,
+    }
+    assert option["option_id"] == "OPT1"
+    assert option["path"]["route_sequence"] == ["R1"]
+    assert option["metrics"]["transfer_count"] == 0
+    assert option["metrics"]["circuity_index"] == pytest.approx(1.5)
+    assert option["metrics"]["coverage_ratio"] == pytest.approx(0.01)
+    assert option["metrics"]["composite_score"] is not None
+
+def test_openapi_declares_concise_response_contract():
+    openapi_schema = api.app.openapi()
+
+    response_schema = openapi_schema["paths"]["/api/kpi/calculate-all"]["post"]["responses"][
+        "200"
+    ]["content"]["application/json"]["schema"]
+    components = openapi_schema["components"]["schemas"]
+
+    assert response_schema == {"$ref": "#/components/schemas/CalculateAllKPIResponse"}
+    assert set(components["ODKPIResultResponse"]["properties"]) == {
+        "od_pair_id",
+        "summary",
+        "route_options",
+    }
+    assert set(components["SummaryScoresResponse"]["properties"]) == {
+        "composite",
+        "transfer",
+        "circuity",
+        "spatial_coverage",
+    }
+    assert set(components["RouteMetricsResponse"]["properties"]) == {
+        "composite_score",
+        "transfer_count",
+        "circuity_index",
+        "coverage_ratio",
+    }

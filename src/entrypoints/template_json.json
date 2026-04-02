@@ -1,116 +1,53 @@
 {
-    "od_pair": "OD1",
-    "aggregated_kpis": {
-        "transfer_kpi": {
-            "score": 66.66666666666667,
-            "score_scale": "0_100_higher_is_better",
-            "is_valid": true,
-            "reason": null,
-            "best_score": 66.66666666666667,
-            "weighted_average_score": 66.66666666666667,
-            "parameters": {
-                "alpha": 0.7
-            }
-        },
-        "circuity_kpi": {
-            "score": 40.00000000000001,
-            "score_scale": "0_100_higher_is_better",
-            "is_valid": true,
-            "reason": null,
-            "best_score": 40.00000000000001,
-            "weighted_average_score": 40.00000000000001,
-            "parameters": {
-                "alpha": 0.7
-            }
-        },
-        "spatial_coverage_kpi": {
-            "score": 25.0,
-            "score_scale": "0_100_higher_is_better",
-            "is_valid": true,
-            "reason": null,
-            "best_score": 25.0,
-            "weighted_average_score": 25.0,
-            "parameters": {
-                "alpha": 0.7
-            }
-        },
-        "composite_kpi": {
-            "score": 46.75,
-            "score_scale": "0_100_higher_is_better",
-            "is_valid": true,
-            "reason": null,
-            "best_score": 46.75,
-            "weighted_average_score": 46.75,
-            "parameters": {
-                "alpha": 0.7
-            }
-        }
+  "od_pair_id": "OD1",
+  "summary": {
+    "is_valid": true,
+    "reason": null,
+    "scores": {
+      "composite": 46.75,
+      "transfer": 66.66666666666667,
+      "circuity": 40.0,
+      "spatial_coverage": 25.0
+    }
+  },
+  "route_options": [
+    {
+      "option_id": "OPT1",
+      "path": {
+        "route_sequence": [
+          "Tuyen R1"
+        ],
+        "stop_sequence": [
+          "Tram A",
+          "Tram C"
+        ]
+      },
+      "metrics": {
+        "composite_score": 67.08333333333334,
+        "transfer_count": 0,
+        "circuity_index": 1.2,
+        "coverage_ratio": 0.25
+      }
     },
-    "options": [
-        {
-            "candidate_routes": [
-                "Tuyến R1",
-                "Tuyến R2"
-            ],
-            "representative_trip": {
-                "routes": [
-                    "Tuyến R1",
-                    "Tuyến R2"
-                ],
-                "stops": [
-                    "Trạm A",
-                    "Trạm B",
-                    "Trạm C"
-                ]
-            },
-            "kpis": {
-                "transfer_kpi": {
-                    "score": 1
-                },
-                "circuity_kpi": {
-                    "score": 1.9
-                },
-                "spatial_coverage_kpi": {
-                    "score_ratio": 0.25,
-                    "origin_coverage_ratio": 0.5,
-                    "destination_coverage_ratio": 0.5,
-                    "origin_zone_id": "Z1",
-                    "destination_zone_id": "Z2",
-                    "radius_m": 500.0,
-                    "origin_stop_count": 2,
-                    "destination_stop_count": 2
-                },
-                "composite_kpi": {
-                    "score": 46.75,
-                    "is_valid": true,
-                    "reason": null,
-                    "invalid_inputs": {},
-                    "raw_inputs": {
-                        "transfer_count": 1,
-                        "circuity_index": 1.9,
-                        "service_coverage_ratio": 0.25
-                    },
-                    "normalized_scores": {
-                        "transfer": 66.66666666666667,
-                        "circuity": 40.00000000000001,
-                        "service_coverage": 25.0
-                    },
-                    "weights": {
-                        "transfer": 0.45,
-                        "circuity": 0.2,
-                        "service_coverage": 0.35
-                    },
-                    "weighted_scores": {
-                        "transfer": 30.0,
-                        "circuity": 8.000000000000002,
-                        "service_coverage": 8.75
-                    },
-                    "parameters": {
-                        "transfer_max": 3.0,
-                        "circuity_max": 2.5
-                    }
-                }
-            }
-        }
-    ]
+    {
+      "option_id": "OPT2",
+      "path": {
+        "route_sequence": [
+          "Tuyen R1",
+          "Tuyen R2"
+        ],
+        "stop_sequence": [
+          "Tram A",
+          "Tram B",
+          "Tram C"
+        ]
+      },
+      "metrics": {
+        "composite_score": 52.083333333333336,
+        "transfer_count": 1,
+        "circuity_index": 1.9,
+        "coverage_ratio": 0.25
+      }
+    }
+  ]
 }

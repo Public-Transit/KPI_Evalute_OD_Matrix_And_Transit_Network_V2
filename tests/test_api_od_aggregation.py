@@ -58,10 +58,10 @@ def _fake_batch_route_all_od_pairs(*args, **kwargs):
         ),
         Trip([Leg("R1", "S1", "S2"), Leg("R2", "S2", "S3")]),
     )
-    return [ODRoutingResultV2("OD1", [direct_option, one_transfer_option])]
+    return [ODRoutingResultV2("OD1", [one_transfer_option, direct_option])]
 
 
-def test_calculate_kpi_all_od_pairs_returns_aggregated_kpis(monkeypatch):
+def test_calculate_kpi_all_od_pairs_returns_summary_and_sorted_route_options(monkeypatch):
     monkeypatch.setattr(api, "FakeRepoL5", FakeRepoForODAggregationApi)
     monkeypatch.setattr(api, "ShapelyGeometryCalculator", MockGeometryCalculator)
     monkeypatch.setattr(
@@ -74,19 +74,38 @@ def test_calculate_kpi_all_od_pairs_returns_aggregated_kpis(monkeypatch):
 
     assert payload["status"] == "success"
     od_result = payload["data"][0]
-    assert "aggregated_kpis" in od_result
-    assert len(od_result["options"]) == 2
+    assert od_result["od_pair_id"] == "OD1"
+    assert "aggregated_kpis" not in od_result
+    assert "options" not in od_result
+    assert len(od_result["route_options"]) == 2
 
-    aggregated_kpis = od_result["aggregated_kpis"]
-    option_kpis = [option["kpis"] for option in od_result["options"]]
+    summary = od_result["summary"]
+    route_options = od_result["route_options"]
 
-    assert aggregated_kpis["transfer_kpi"]["score"] == pytest.approx(96.66666666666667)
-    assert aggregated_kpis["circuity_kpi"]["score"] == pytest.approx(66.66666666666667)
-    assert aggregated_kpis["spatial_coverage_kpi"]["score"] == pytest.approx(25.0)
-    assert aggregated_kpis["composite_kpi"]["score"] == pytest.approx(65.58333333333334)
+    assert summary["is_valid"] is True
+    assert summary["reason"] is None
+    assert summary["scores"]["transfer"] == pytest.approx(96.66666666666667)
+    assert summary["scores"]["circuity"] == pytest.approx(66.66666666666667)
+    assert summary["scores"]["spatial_coverage"] == pytest.approx(25.0)
+    assert summary["scores"]["composite"] == pytest.approx(65.58333333333334)
 
-    assert option_kpis[0]["composite_kpi"]["score"] == pytest.approx(67.08333333333334)
-    assert option_kpis[1]["composite_kpi"]["score"] == pytest.approx(52.083333333333336)
-    assert aggregated_kpis["composite_kpi"]["best_score"] == pytest.approx(
-        max(option["composite_kpi"]["score"] for option in option_kpis)
-    )
+    assert [option["option_id"] for option in route_options] == ["OPT1", "OPT2"]
+    assert route_options[0]["metrics"]["composite_score"] == pytest.approx(67.08333333333334)
+    assert route_options[1]["metrics"]["composite_score"] == pytest.approx(52.083333333333336)
+    assert route_options[0]["metrics"]["transfer_count"] == 0
+    assert route_options[1]["metrics"]["transfer_count"] == 1
+    assert route_options[0]["path"]["route_sequence"] == ["R1"]
+    assert route_options[0]["path"]["stop_sequence"] == ["S1", "S3"]
+    assert route_options[1]["path"]["route_sequence"] == ["R1", "R2"]
+    assert route_options[1]["path"]["stop_sequence"] == ["S1", "S2", "S3"]
+    assert route_options[0]["metrics"]["composite_score"] > route_options[1]["metrics"]["composite_score"]
+
+    for option in route_options:
+        assert "candidate_routes" not in option
+        assert "representative_trip" not in option
+        assert set(option["metrics"]) == {
+            "composite_score",
+            "transfer_count",
+            "circuity_index",
+            "coverage_ratio",
+        }
