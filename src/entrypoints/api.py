@@ -6,7 +6,8 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
-from src.adapters.repository.cottbus_xml_repository import CottbusXmlRepository
+# from src.adapters.repository.cottbus_xml_repository import CottbusXmlRepository
+from src.adapters.repository.siouxfalls_xml_repository import SiouxFallsXmlRepository
 from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.transit_network import TransitNetwork
 from src.domain.service.aggregate.composite_quality_index import (
@@ -212,13 +213,22 @@ class CalculateAllRoutesKPIResponse(BaseModel):
     }
 
 
-DEFAULT_REFERENCE_PATH = "cottbus"
+DEFAULT_REFERENCE_PATH = "siouxfalls"
 DEFAULT_MAX_PLANS = 5
 DEFAULT_ZONE_HALF_SIZE_DEG = 0.05
 
 
 def build_repository():
-    return CottbusXmlRepository(
+    # Cottbus loader (kept for quick fallback during PoC):
+    # return CottbusXmlRepository(
+    #     data_dir="cottbus",
+    #     schedule_file="schedule.xml",
+    #     plans_file="plans_scale0.375true.xml",
+    #     max_plans=DEFAULT_MAX_PLANS,
+    #     zone_half_size_deg=DEFAULT_ZONE_HALF_SIZE_DEG,
+    # )
+
+    return SiouxFallsXmlRepository(
         data_dir=DEFAULT_REFERENCE_PATH,
         max_plans=DEFAULT_MAX_PLANS,
         zone_half_size_deg=DEFAULT_ZONE_HALF_SIZE_DEG,
