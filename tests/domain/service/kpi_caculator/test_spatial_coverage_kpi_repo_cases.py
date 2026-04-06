@@ -135,7 +135,7 @@ def test_center_stop_inside_zone_returns_partial_coverage():
     assert 0.0 < result["origin_coverage_ratio"] < 1.0
     assert 0.0 < result["destination_coverage_ratio"] < 1.0
     assert result["score_ratio"] == pytest.approx(
-        result["origin_coverage_ratio"] * result["destination_coverage_ratio"]
+        min(result["origin_coverage_ratio"], result["destination_coverage_ratio"])
     )
     assert result["origin_stop_count"] == 1
     assert result["destination_stop_count"] == 1
@@ -238,4 +238,4 @@ def test_spatial_kpi_uses_only_first_and_last_candidate_legs():
     assert result["destination_stop_count"] == 1
     assert result["origin_coverage_ratio"] == pytest.approx(expected_origin)
     assert result["destination_coverage_ratio"] == pytest.approx(expected_destination)
-    assert result["score_ratio"] == pytest.approx(expected_origin * expected_destination)
+    assert result["score_ratio"] == pytest.approx(min(expected_origin, expected_destination))

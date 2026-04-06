@@ -14,7 +14,7 @@ class SpatialCoverageCalculator(KPICalculator):
         - Take the first CandidateLeg for origin boarding stops
         - Take the last CandidateLeg for destination alighting stops
         - Compute zone coverage ratio for origin/destination
-        - Final score = clamp(origin_ratio * destination_ratio)
+        - Final score = clamp(min(origin_ratio, destination_ratio))
         """
         od_pair_id: str = kwargs.get("od_pair_id")
         od_matrix: ODMatrix = kwargs.get("od_matrix")
@@ -75,7 +75,7 @@ class SpatialCoverageCalculator(KPICalculator):
             geometry_calculator=geometry_calculator,
         )
 
-        score_ratio = max(0.0, min(1.0, origin_coverage_ratio * destination_coverage_ratio))
+        score_ratio = max(0.0, min(1.0, min(origin_coverage_ratio, destination_coverage_ratio)))
 
         return {
             "score_ratio": score_ratio,

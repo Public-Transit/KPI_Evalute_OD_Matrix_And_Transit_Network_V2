@@ -85,12 +85,12 @@ def test_calculate_kpi_all_od_pairs_returns_summary_and_sorted_route_options(mon
     assert summary["reason"] is None
     assert summary["scores"]["transfer"] == pytest.approx(96.66666666666667)
     assert summary["scores"]["circuity"] == pytest.approx(66.66666666666667)
-    assert summary["scores"]["spatial_coverage"] == pytest.approx(25.0)
-    assert summary["scores"]["composite"] == pytest.approx(65.58333333333334)
+    assert summary["scores"]["spatial_coverage"] == pytest.approx(50.0)
+    assert summary["scores"]["composite"] == pytest.approx(74.33333333333333)
 
     assert [option["option_id"] for option in route_options] == ["OPT1", "OPT2"]
-    assert route_options[0]["metrics"]["composite_score"] == pytest.approx(67.08333333333334)
-    assert route_options[1]["metrics"]["composite_score"] == pytest.approx(52.083333333333336)
+    assert route_options[0]["metrics"]["composite_score"] == pytest.approx(75.83333333333333)
+    assert route_options[1]["metrics"]["composite_score"] == pytest.approx(60.833333333333336)
     assert route_options[0]["metrics"]["transfer_count"] == 0
     assert route_options[1]["metrics"]["transfer_count"] == 1
     assert route_options[0]["path"]["route_sequence"] == ["R1"]

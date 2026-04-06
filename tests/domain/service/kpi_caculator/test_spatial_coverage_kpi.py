@@ -51,7 +51,7 @@ def test_spatial_coverage_calculator_uses_candidate_trip_endpoints():
     # MockGeometryCalculator returns 0.5 coverage regardless of points.
     assert kpi_res["origin_coverage_ratio"] == 0.5
     assert kpi_res["destination_coverage_ratio"] == 0.5
-    assert kpi_res["score_ratio"] == 0.25
+    assert kpi_res["score_ratio"] == 0.5
     assert "score_percent" not in kpi_res
     assert "origin_coverage_percent" not in kpi_res
     assert "destination_coverage_percent" not in kpi_res
