@@ -3,7 +3,40 @@ import pytest
 from src.entrypoints import api
 
 
-def test_calculate_kpi_all_routes_returns_concise_trip_schema():
+def _fake_calculate_kpis_for_all_trips(*args, **kwargs):
+    return [
+        {
+            "trip_id": "Trip_1",
+            "summary": {
+                "is_valid": True,
+                "reason": None,
+                "scores": {
+                    "total_potential_demand": 120.0,
+                },
+            },
+            "path": {
+                "route_sequence": ["R1"],
+                "stop_sequence": ["S2", "S3"],
+            },
+            "served_od_pairs": [
+                {
+                    "od_pair_id": "OD1",
+                    "demand": 120.0,
+                    "board_stop": "S2",
+                    "alight_stop": "S3",
+                }
+            ],
+        }
+    ]
+
+
+def test_calculate_kpi_all_routes_returns_concise_trip_schema(monkeypatch):
+    monkeypatch.setattr(
+        api.trip_kpi_services,
+        "calculate_kpis_for_all_trips",
+        _fake_calculate_kpis_for_all_trips,
+    )
+
     payload = api.calculate_kpi_all_routes()
 
     assert payload["status"] == "success"

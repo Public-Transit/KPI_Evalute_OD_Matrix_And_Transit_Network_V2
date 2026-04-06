@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
-from src.adapters.repository.fake_repo_grid_3x3 import FakeRepoGrid3x3
+from src.adapters.repository.cottbus_xml_repository import CottbusXmlRepository
 from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.transit_network import TransitNetwork
 from src.domain.service.aggregate.composite_quality_index import (
@@ -212,7 +212,17 @@ class CalculateAllRoutesKPIResponse(BaseModel):
     }
 
 
-DEFAULT_REFERENCE_PATH = "path/to/data/matsim"
+DEFAULT_REFERENCE_PATH = "cottbus"
+DEFAULT_MAX_PLANS = 5
+DEFAULT_ZONE_HALF_SIZE_DEG = 0.05
+
+
+def build_repository():
+    return CottbusXmlRepository(
+        data_dir=DEFAULT_REFERENCE_PATH,
+        max_plans=DEFAULT_MAX_PLANS,
+        zone_half_size_deg=DEFAULT_ZONE_HALF_SIZE_DEG,
+    )
 
 
 def _coerce_metric_value(value):
@@ -288,7 +298,7 @@ def calculate_kpi_all_od_pairs() -> CalculateAllKPIResponse:
     """
     Calculate concise KPI results for all OD pairs.
     """
-    repo = FakeRepoGrid3x3()
+    repo = build_repository()
     uow = DummyUnitOfWork(repo)
     routing_engine = CombinedRoutingEngine()
     filter_engine = MinDistanceCandidateTripFilterV2()
@@ -391,7 +401,7 @@ def calculate_kpi_all_routes() -> CalculateAllRoutesKPIResponse:
     """
     Calculate concise trip-level KPI results for all trips.
     """
-    repo = FakeRepoGrid3x3()
+    repo = build_repository()
     uow = DummyUnitOfWork(repo)
     routing_engine = CombinedRoutingEngine()
     filter_engine = MinDistanceCandidateTripFilterV2()
