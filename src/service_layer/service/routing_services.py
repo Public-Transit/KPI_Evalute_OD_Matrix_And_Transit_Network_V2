@@ -2,7 +2,6 @@
 from src.service_layer.unit_of_work import AbstractUnitOfWork
 from src.domain.service.routing import AbstractRouting
 
-from src.domain.model.route import Route
 from src.domain.model.transit_network import TransitNetwork
 from src.domain.port import IGeometryCalculator
 from src.domain.model.od_matrix import ODMatrix
@@ -18,7 +17,7 @@ def batch_route_all_od_pairs(routing_engine: AbstractRouting, filter_engine: Abs
     """
     with uow:
         # Lấy data từ Repo
-        stops, routes, zones, od_pairs, trips = uow.repo.get(reference_path)
+        stops, routes, zones, od_pairs = uow.repo.get(reference_path)
         transit_network = TransitNetwork(stops, routes)
         od_matrix = ODMatrix(od_pairs, zones)
         

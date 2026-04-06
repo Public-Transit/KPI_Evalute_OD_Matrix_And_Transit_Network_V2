@@ -303,7 +303,7 @@ def calculate_kpi_all_od_pairs() -> CalculateAllKPIResponse:
             DEFAULT_REFERENCE_PATH,
         )
 
-        stops, routes, zones, od_pairs, trips = uow.repo.get(DEFAULT_REFERENCE_PATH)
+        stops, routes, zones, od_pairs = uow.repo.get(DEFAULT_REFERENCE_PATH)
         transit_network = TransitNetwork(stops, routes)
         od_matrix = ODMatrix(od_pairs, zones)
 
@@ -394,6 +394,7 @@ def calculate_kpi_all_routes() -> CalculateAllRoutesKPIResponse:
     repo = FakeRepoGrid3x3()
     uow = DummyUnitOfWork(repo)
     routing_engine = CombinedRoutingEngine()
+    filter_engine = MinDistanceCandidateTripFilterV2()
     geo_calc = ShapelyGeometryCalculator()
 
     try:
@@ -401,6 +402,7 @@ def calculate_kpi_all_routes() -> CalculateAllRoutesKPIResponse:
             [TotalPotentialDemandInTripCalculator()],
             uow,
             routing_engine,
+            filter_engine,
             geo_calc,
             DEFAULT_REFERENCE_PATH,
         )

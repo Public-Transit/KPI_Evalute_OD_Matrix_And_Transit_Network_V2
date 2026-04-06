@@ -1,14 +1,12 @@
 from typing import Tuple
 
 from src.adapters.repository.abstract_repository import AbstractRepository
-from src.domain.model.leg import Leg
 from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.od_pair import ODPair
 from src.domain.model.point import Point
 from src.domain.model.route import Route
 from src.domain.model.stop import Stop
 from src.domain.model.transit_network import TransitNetwork
-from src.domain.model.trip import Trip
 from src.domain.model.zone import Zone
 
 
@@ -78,11 +76,6 @@ class FakeRepoGrid3x3(AbstractRepository):
             ODPair("OD1", "Z1", "Z2", 120.0),
         ]
 
-        self.trips = [
-            Trip([Leg("R2", "S3", "S5")]),
-            Trip([Leg("R1", "S1", "S4")]),
-        ]
-
     def _stop_coord(self, stop_id: str) -> Point:
         for stop in self.stops:
             if stop.id() == stop_id:
@@ -91,8 +84,8 @@ class FakeRepoGrid3x3(AbstractRepository):
 
     def get(
         self, reference=None
-    ) -> Tuple[list[Stop], list[Route], list[Zone], list[ODPair], list[Trip]]:
-        return self.stops, self.routes, self.zones, self.od_pairs, self.trips
+    ) -> Tuple[list[Stop], list[Route], list[Zone], list[ODPair]]:
+        return self.stops, self.routes, self.zones, self.od_pairs
 
     def get_od_matrix(self) -> ODMatrix:
         return ODMatrix(self.od_pairs, self.zones)

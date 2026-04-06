@@ -34,8 +34,7 @@ class FakeRepoForApi:
             ),
         ]
         od_pairs = [ODPair("OD1", "Z1", "Z2", 10)]
-        trips = []
-        return stops, routes, zones, od_pairs, trips
+        return stops, routes, zones, od_pairs
 
 
 def _fake_batch_route_all_od_pairs(*args, **kwargs):
