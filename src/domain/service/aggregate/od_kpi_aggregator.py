@@ -4,20 +4,42 @@ from collections.abc import Mapping
 from numbers import Real
 from typing import Any
 
+from src.config.app_config import ODAggregationConfig
+
 
 class ODKPIAggregator:
     SCORE_SCALE = "0_100_higher_is_better"
     NO_VALID_TRIPS_REASON = "No valid trips after hard-threshold filtering"
 
+    def __init__(self, config: ODAggregationConfig | None = None):
+        self._config = config or ODAggregationConfig()
+
     def calculate(
         self,
         trip_kpi_results: list[dict],
         *,
-        alpha: float = 0.7,
-        max_valid_transfer_count: float = 1.0,
-        max_valid_circuity: float = 2.5,
-        min_valid_service_coverage_ratio: float = 0.00,
+        alpha: float | None = None,
+        max_valid_transfer_count: float | None = None,
+        max_valid_circuity: float | None = None,
+        min_valid_service_coverage_ratio: float | None = None,
     ) -> dict[str, Any]:
+        alpha = self._config.alpha if alpha is None else alpha
+        max_valid_transfer_count = (
+            self._config.max_valid_transfer_count
+            if max_valid_transfer_count is None
+            else max_valid_transfer_count
+        )
+        max_valid_circuity = (
+            self._config.max_valid_circuity
+            if max_valid_circuity is None
+            else max_valid_circuity
+        )
+        min_valid_service_coverage_ratio = (
+            self._config.min_valid_service_coverage_ratio
+            if min_valid_service_coverage_ratio is None
+            else min_valid_service_coverage_ratio
+        )
+
         self._validate_configuration(
             alpha=alpha,
             max_valid_transfer_count=max_valid_transfer_count,

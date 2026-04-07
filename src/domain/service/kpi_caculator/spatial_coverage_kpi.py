@@ -4,10 +4,14 @@ from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.routing_result import EvaluatedRoutingOption
 from src.domain.model.transit_network import TransitNetwork
 from src.domain.port import IGeometryCalculator
+from src.config.app_config import SpatialCoverageConfig
 from src.domain.service.kpi_caculator.kpi_base import KPICalculator
 
 
 class SpatialCoverageCalculator(KPICalculator):
+    def __init__(self, config: SpatialCoverageConfig | None = None):
+        self._config = config or SpatialCoverageConfig()
+
     def calculate(self, evaluated_routing_option: EvaluatedRoutingOption, **kwargs) -> dict[str, Any]:
         """
         Calculate OD spatial coverage using one candidate trip:
@@ -20,7 +24,9 @@ class SpatialCoverageCalculator(KPICalculator):
         od_matrix: ODMatrix = kwargs.get("od_matrix")
         transit_network: TransitNetwork = kwargs.get("transit_network")
         geometry_calculator: IGeometryCalculator = kwargs.get("geometry_calculator")
-        radius_m: float = kwargs.get("radius_m", 500.0)
+        radius_m = kwargs.get("radius_m")
+        if radius_m is None:
+            radius_m = self._config.radius_m
 
         if not all([od_pair_id, od_matrix, transit_network, geometry_calculator]):
             raise ValueError("od_pair_id, od_matrix, transit_network and geometry_calculator are required")

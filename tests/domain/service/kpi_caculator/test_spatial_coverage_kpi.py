@@ -1,6 +1,7 @@
 import pytest
 
 from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
+from src.config.app_config import SpatialCoverageConfig
 from src.domain.model.leg import CandidateLeg
 from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.od_pair import ODPair
@@ -101,3 +102,27 @@ def test_zone_coverage_does_not_double_count_overlapping_buffers():
     duplicated = calc.calculate_zone_coverage_ratio(zone, [p, p], radius_m=200.0)
 
     assert duplicated == pytest.approx(single)
+
+
+def test_spatial_coverage_calculator_uses_radius_from_config_by_default():
+    calc = SpatialCoverageCalculator(SpatialCoverageConfig(radius_m=275.0))
+    transit_network = TransitNetwork([Stop("S1", 1.0, 1.0)], [])
+    z1 = Zone("Z1", [], Point(1.0, 1.0))
+    z2 = Zone("Z2", [], Point(2.0, 2.0))
+    od1 = ODPair("OD1", "Z1", "Z2", 10)
+    od_matrix = ODMatrix([od1], [z1, z2])
+
+    evaluated_option = EvaluatedRoutingOption(
+        CandidateTrip([CandidateLeg("R1", {"S1"}, {"S1"})]),
+        Trip([]),
+    )
+
+    kpi_res = calc.calculate(
+        evaluated_option,
+        od_pair_id="OD1",
+        od_matrix=od_matrix,
+        transit_network=transit_network,
+        geometry_calculator=MockGeometryCalculator(),
+    )
+
+    assert kpi_res["radius_m"] == pytest.approx(275.0)

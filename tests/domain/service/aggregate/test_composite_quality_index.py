@@ -1,5 +1,6 @@
 import pytest
 
+from src.config.app_config import CompositeQualityIndexConfig
 from src.domain.service.aggregate.composite_quality_index import (
     CompositeQualityIndexCalculator,
 )
@@ -76,3 +77,24 @@ def test_composite_quality_index_raises_for_invalid_configuration():
 
     with pytest.raises(ValueError):
         calc.calculate(0, 1.0, 1.0, circuity_max=1.0)
+
+
+def test_composite_quality_index_uses_constructor_config_as_default():
+    calc = CompositeQualityIndexCalculator(
+        CompositeQualityIndexConfig(
+            transfer_max=2.0,
+            circuity_max=2.0,
+            transfer_weight=0.5,
+            circuity_weight=0.3,
+            service_coverage_weight=0.2,
+        )
+    )
+
+    result = calc.calculate(1, 1.5, 0.25)
+
+    assert result["normalized_scores"]["transfer"] == pytest.approx(50.0)
+    assert result["normalized_scores"]["circuity"] == pytest.approx(50.0)
+    assert result["weighted_scores"]["transfer"] == pytest.approx(25.0)
+    assert result["weighted_scores"]["circuity"] == pytest.approx(15.0)
+    assert result["weighted_scores"]["service_coverage"] == pytest.approx(5.0)
+    assert result["score"] == pytest.approx(45.0)

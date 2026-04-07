@@ -95,9 +95,9 @@ def _proxy_backend_request(backend_url: str) -> Response:
 
 def _build_repository(*, dataset: str, max_plans: int | None, grid_cell_size_m: float):
     if dataset == "siouxfalls":
-        return SiouxFallsXmlRepository(data_dir="siouxfalls", max_plans=max_plans, grid_cell_size_m=grid_cell_size_m)
+        return SiouxFallsXmlRepository(data_dir="data/input/siouxfalls", max_plans=max_plans, grid_cell_size_m=grid_cell_size_m)
     if dataset == "cottbus":
-        return CottbusXmlRepository(data_dir="cottbus", max_plans=max_plans, grid_cell_size_m=grid_cell_size_m)
+        return CottbusXmlRepository(data_dir="data/input/cottbus", max_plans=max_plans, grid_cell_size_m=grid_cell_size_m)
     raise ValueError(f"Unsupported dataset: {dataset}")
 
 

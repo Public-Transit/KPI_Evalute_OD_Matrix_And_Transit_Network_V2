@@ -15,7 +15,7 @@ class SiouxFallsXmlRepository(CottbusXmlRepository):
 
     def __init__(
         self,
-        data_dir: str | Path = "siouxfalls",
+        data_dir: str | Path = "data/input/siouxfalls",
         schedule_file: str = "Siouxfalls_transitSchedule.xml",
         plans_file: str = "Siouxfalls_population.xml",
         max_plans: int | None = 200,

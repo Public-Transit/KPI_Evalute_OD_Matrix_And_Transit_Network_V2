@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from src.adapters.geospatial.geopy_shapely import ShapelyGeometryCalculator
 # from src.adapters.repository.cottbus_xml_repository import CottbusXmlRepository
 from src.adapters.repository.siouxfalls_xml_repository import SiouxFallsXmlRepository
+from src.config.app_config import load_app_config
 from src.domain.model.od_matrix import ODMatrix
 from src.domain.model.transit_network import TransitNetwork
 from src.domain.service.aggregate.composite_quality_index import (
@@ -213,26 +214,15 @@ class CalculateAllRoutesKPIResponse(BaseModel):
     }
 
 
-DEFAULT_REFERENCE_PATH = "siouxfalls"
-DEFAULT_MAX_PLANS = 200
-DEFAULT_GRID_CELL_SIZE_M = 1000.0
-
-
 def build_repository():
     # Cottbus loader (kept for quick fallback during PoC):
     # return CottbusXmlRepository(
-    #     data_dir="cottbus",
+    #     data_dir="data/input/cottbus",
     #     schedule_file="schedule.xml",
     #     plans_file="plans_scale0.375true.xml",
-    #     max_plans=DEFAULT_MAX_PLANS,
-    #     grid_cell_size_m=DEFAULT_GRID_CELL_SIZE_M,
     # )
 
-    return SiouxFallsXmlRepository(
-        data_dir=DEFAULT_REFERENCE_PATH,
-        max_plans=DEFAULT_MAX_PLANS,
-        grid_cell_size_m=DEFAULT_GRID_CELL_SIZE_M,
-    )
+    return SiouxFallsXmlRepository()
 
 
 def _coerce_metric_value(value):
@@ -308,6 +298,7 @@ def calculate_kpi_all_od_pairs() -> CalculateAllKPIResponse:
     """
     Calculate concise KPI results for all OD pairs.
     """
+    app_config = load_app_config()
     repo = build_repository()
     uow = DummyUnitOfWork(repo)
     routing_engine = CombinedRoutingEngine()
@@ -320,18 +311,18 @@ def calculate_kpi_all_od_pairs() -> CalculateAllKPIResponse:
             filter_engine,
             uow,
             geo_calc,
-            DEFAULT_REFERENCE_PATH,
+            None,
         )
 
-        stops, routes, zones, od_pairs = uow.repo.get(DEFAULT_REFERENCE_PATH)
+        stops, routes, zones, od_pairs = uow.repo.get(None)
         transit_network = TransitNetwork(stops, routes)
         od_matrix = ODMatrix(od_pairs, zones)
 
         transfer_calc = TransferRateCalculator()
         circuity_calc = CircuityIndexCalculator()
-        spatial_calc = SpatialCoverageCalculator()
-        composite_calc = CompositeQualityIndexCalculator()
-        od_aggregator = ODKPIAggregator()
+        spatial_calc = SpatialCoverageCalculator(app_config.spatial_coverage)
+        composite_calc = CompositeQualityIndexCalculator(app_config.composite_quality_index)
+        od_aggregator = ODKPIAggregator(app_config.od_aggregation)
 
         json_results = []
         for routing_result in results:
@@ -411,6 +402,7 @@ def calculate_kpi_all_routes() -> CalculateAllRoutesKPIResponse:
     """
     Calculate concise trip-level KPI results for all trips.
     """
+    app_config = load_app_config()
     repo = build_repository()
     uow = DummyUnitOfWork(repo)
     routing_engine = CombinedRoutingEngine()
@@ -424,7 +416,7 @@ def calculate_kpi_all_routes() -> CalculateAllRoutesKPIResponse:
             routing_engine,
             filter_engine,
             geo_calc,
-            DEFAULT_REFERENCE_PATH,
+            None,
         )
         return {"status": "success", "data": results}
     except Exception as exc:

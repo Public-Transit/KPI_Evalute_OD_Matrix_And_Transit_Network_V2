@@ -3,6 +3,8 @@ from __future__ import annotations
 from numbers import Real
 from typing import Any
 
+from src.config.app_config import CompositeQualityIndexConfig
+
 
 class CompositeQualityIndexCalculator:
     """
@@ -16,18 +18,31 @@ class CompositeQualityIndexCalculator:
 
     INVALID_MARKERS = {"Not valid", "Not valid or >1"}
 
+    def __init__(self, config: CompositeQualityIndexConfig | None = None):
+        self._config = config or CompositeQualityIndexConfig()
+
     def calculate(
         self,
         transfer_score: Any,
         circuity_score: Any,
         service_coverage_ratio: Any,
         *,
-        transfer_max: float = 3.0,
-        circuity_max: float = 2.5,
-        transfer_weight: float = 0.45,
-        circuity_weight: float = 0.20,
-        service_coverage_weight: float = 0.35,
+        transfer_max: float | None = None,
+        circuity_max: float | None = None,
+        transfer_weight: float | None = None,
+        circuity_weight: float | None = None,
+        service_coverage_weight: float | None = None,
     ) -> dict[str, Any]:
+        transfer_max = self._config.transfer_max if transfer_max is None else transfer_max
+        circuity_max = self._config.circuity_max if circuity_max is None else circuity_max
+        transfer_weight = self._config.transfer_weight if transfer_weight is None else transfer_weight
+        circuity_weight = self._config.circuity_weight if circuity_weight is None else circuity_weight
+        service_coverage_weight = (
+            self._config.service_coverage_weight
+            if service_coverage_weight is None
+            else service_coverage_weight
+        )
+
         if transfer_max <= 0:
             raise ValueError("'transfer_max' must be greater than 0")
         if circuity_max <= 1:

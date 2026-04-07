@@ -26,7 +26,7 @@ class CottbusXmlRepository(AbstractRepository):
 
     def __init__(
         self,
-        data_dir: str | Path = "cottbus",
+        data_dir: str | Path = "data/input/cottbus",
         schedule_file: str = "schedule.xml",
         plans_file: str = "plans_scale0.375true.xml",
         max_plans: int | None = 200,

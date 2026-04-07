@@ -1,5 +1,6 @@
 import pytest
 
+from src.config.app_config import ODAggregationConfig
 from src.domain.service.aggregate.od_kpi_aggregator import ODKPIAggregator
 
 
@@ -132,7 +133,8 @@ def test_od_kpi_aggregator_returns_invalid_when_no_trip_survives_filtering():
             _build_trip_kpis(transfer_raw=2),
             _build_trip_kpis(circuity_raw=3.0),
             _build_trip_kpis(coverage_raw=0.0),
-        ]
+        ],
+        min_valid_service_coverage_ratio=0.1,
     )
 
     for metric_name in (
@@ -147,3 +149,40 @@ def test_od_kpi_aggregator_returns_invalid_when_no_trip_survives_filtering():
         assert metric_result["reason"] == "No valid trips after hard-threshold filtering"
         assert metric_result["best_score"] is None
         assert metric_result["weighted_average_score"] is None
+
+
+def test_od_kpi_aggregator_uses_constructor_config_as_default():
+    aggregator = ODKPIAggregator(
+        ODAggregationConfig(
+            alpha=0.5,
+            max_valid_transfer_count=2.0,
+            max_valid_circuity=3.0,
+            min_valid_service_coverage_ratio=0.2,
+        )
+    )
+
+    result = aggregator.calculate(
+        [
+            _build_trip_kpis(
+                transfer_raw=2,
+                circuity_raw=2.8,
+                coverage_raw=0.2,
+                transfer_score=33.333333333333336,
+                circuity_score=20.0,
+                service_coverage_score=20.0,
+                composite_score=25.0,
+            ),
+            _build_trip_kpis(
+                transfer_raw=0,
+                circuity_raw=1.2,
+                coverage_raw=0.6,
+                transfer_score=100.0,
+                circuity_score=86.66666666666667,
+                service_coverage_score=60.0,
+                composite_score=84.0,
+            ),
+        ]
+    )
+
+    assert result["composite_kpi"]["score"] == pytest.approx(74.16666666666666)
+    assert result["composite_kpi"]["parameters"]["alpha"] == pytest.approx(0.5)
