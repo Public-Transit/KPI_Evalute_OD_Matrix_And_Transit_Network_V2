@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import math
 import xml.etree.ElementTree as ET
 from pathlib import Path
+
+from pyproj import Transformer
 
 from src.adapters.repository.abstract_repository import AbstractRepository
 from src.domain.model.od_pair import ODPair
@@ -13,11 +16,12 @@ from src.domain.model.zone import Zone
 
 class CottbusXmlRepository(AbstractRepository):
     """
-    Simple XML repository for PoC usage.
+    XML repository for MATSim inputs with projected coordinates.
 
-    It converts MATSim x/y to lat/lon so geodesic utilities can work safely:
-    - lon = x / 10000
-    - lat = y / 100000
+    Coordinates are transformed from a dataset-specific projected CRS into
+    WGS84 (lat/lon) so geodesic calculations can work correctly across the
+    rest of the system. Demand zones are generated from shared projected
+    grid cells instead of per-person square buffers.
     """
 
     def __init__(
@@ -25,21 +29,34 @@ class CottbusXmlRepository(AbstractRepository):
         data_dir: str | Path = "cottbus",
         schedule_file: str = "schedule.xml",
         plans_file: str = "plans_scale0.375true.xml",
-        max_plans: int = 200,
-        zone_half_size_deg: float = 0.01,
+        max_plans: int | None = 200,
+        grid_cell_size_m: float = 500.0,
         default_demand: float = 1.0,
+        source_crs: str = "EPSG:32633",
+        target_crs: str = "EPSG:4326",
     ):
-        if max_plans <= 0:
-            raise ValueError("max_plans must be greater than 0")
-        if zone_half_size_deg <= 0:
-            raise ValueError("zone_half_size_deg must be greater than 0")
+        if max_plans is not None and max_plans <= 0:
+            raise ValueError("max_plans must be greater than 0 or None")
+        if grid_cell_size_m <= 0:
+            raise ValueError("grid_cell_size_m must be greater than 0")
+        if not source_crs:
+            raise ValueError("source_crs must not be empty")
+        if not target_crs:
+            raise ValueError("target_crs must not be empty")
 
         self._data_dir = Path(data_dir)
         self._schedule_file = schedule_file
         self._plans_file = plans_file
         self._max_plans = max_plans
-        self._zone_half_size_deg = zone_half_size_deg
+        self._grid_cell_size_m = grid_cell_size_m
         self._default_demand = default_demand
+        self._source_crs = source_crs
+        self._target_crs = target_crs
+        self._coordinate_transformer = Transformer.from_crs(
+            self._source_crs,
+            self._target_crs,
+            always_xy=True,
+        )
 
     def get(
         self,
@@ -63,10 +80,8 @@ class CottbusXmlRepository(AbstractRepository):
 
         return schedule_path, plans_path
 
-    @staticmethod
-    def _to_lat_lon(x_m: float, y_m: float) -> tuple[float, float]:
-        lon = x_m / 10000.0
-        lat = y_m / 100000.0
+    def _to_lat_lon(self, x_m: float, y_m: float) -> tuple[float, float]:
+        lon, lat = self._coordinate_transformer.transform(x_m, y_m)
         return lat, lon
 
     def _parse_stops(self, schedule_path: Path) -> list[Stop]:
@@ -122,12 +137,12 @@ class CottbusXmlRepository(AbstractRepository):
 
     def _parse_zones_and_od_pairs(self, plans_path: Path) -> tuple[list[Zone], list[ODPair]]:
         root = ET.parse(plans_path).getroot()
-        zones: list[Zone] = []
-        od_pairs: list[ODPair] = []
-        zone_id_counter = 1
+        zone_map: dict[str, Zone] = {}
+        od_demand_map: dict[tuple[str, str], float] = {}
+        processed_plans = 0
 
         for person in root.findall(".//person"):
-            if len(od_pairs) >= self._max_plans:
+            if self._max_plans is not None and processed_plans >= self._max_plans:
                 break
 
             selected_plan = person.find("./plan[@selected='yes']")
@@ -140,33 +155,46 @@ class CottbusXmlRepository(AbstractRepository):
             if len(acts) < 2:
                 continue
 
-            origin_point = self._extract_point(acts[0])
-            destination_point = self._extract_point(acts[1])
-            if origin_point is None or destination_point is None:
+            origin_xy = self._extract_projected_xy(acts[0])
+            destination_xy = self._extract_projected_xy(acts[1])
+            if origin_xy is None or destination_xy is None:
                 continue
 
-            zone_origin = self._build_square_zone(f"Z{zone_id_counter}", origin_point)
-            zone_id_counter += 1
-            zone_destination = self._build_square_zone(
-                f"Z{zone_id_counter}", destination_point
+            processed_plans += 1
+
+            origin_col, origin_row = self._grid_indices(*origin_xy)
+            destination_col, destination_row = self._grid_indices(*destination_xy)
+            origin_cell_id = self._build_cell_id(origin_col, origin_row)
+            destination_cell_id = self._build_cell_id(destination_col, destination_row)
+
+            zone_map.setdefault(
+                origin_cell_id,
+                self._build_grid_zone(origin_cell_id, origin_col, origin_row),
             )
-            zone_id_counter += 1
-
-            zones.extend([zone_origin, zone_destination])
-
-            person_id = person.get("id") or str(len(od_pairs) + 1)
-            od_pairs.append(
-                ODPair(
-                    od_pair_id=f"OD_{person_id}",
-                    origin_zone_id=zone_origin.id(),
-                    destination_zone_id=zone_destination.id(),
-                    demand=self._default_demand,
-                )
+            zone_map.setdefault(
+                destination_cell_id,
+                self._build_grid_zone(
+                    destination_cell_id,
+                    destination_col,
+                    destination_row,
+                ),
             )
 
-        return zones, od_pairs
+            od_key = (origin_cell_id, destination_cell_id)
+            od_demand_map[od_key] = od_demand_map.get(od_key, 0.0) + self._default_demand
 
-    def _extract_point(self, act_elem) -> Point | None:
+        od_pairs = [
+            ODPair(
+                od_pair_id=self._build_od_pair_id(origin_zone_id, destination_zone_id),
+                origin_zone_id=origin_zone_id,
+                destination_zone_id=destination_zone_id,
+                demand=demand,
+            )
+            for (origin_zone_id, destination_zone_id), demand in od_demand_map.items()
+        ]
+        return list(zone_map.values()), od_pairs
+
+    def _extract_projected_xy(self, act_elem) -> tuple[float, float] | None:
         x_raw = act_elem.get("x")
         y_raw = act_elem.get("y")
         if x_raw is None or y_raw is None:
@@ -178,17 +206,38 @@ class CottbusXmlRepository(AbstractRepository):
         except ValueError:
             return None
 
+        return x_m, y_m
+
+    def _projected_to_point(self, x_m: float, y_m: float) -> Point:
         lat, lon = self._to_lat_lon(x_m, y_m)
         return Point(lat, lon)
 
-    def _build_square_zone(self, zone_id: str, centroid: Point) -> Zone:
-        half = self._zone_half_size_deg
-        lat = centroid.lat()
-        lon = centroid.lon()
+    def _grid_indices(self, x_m: float, y_m: float) -> tuple[int, int]:
+        return (
+            math.floor(x_m / self._grid_cell_size_m),
+            math.floor(y_m / self._grid_cell_size_m),
+        )
+
+    def _build_cell_id(self, col: int, row: int) -> str:
+        return f"G_{col}_{row}"
+
+    def _build_od_pair_id(self, origin_zone_id: str, destination_zone_id: str) -> str:
+        return f"OD_{origin_zone_id}__{destination_zone_id}"
+
+    def _build_grid_zone(self, zone_id: str, col: int, row: int) -> Zone:
+        min_x = col * self._grid_cell_size_m
+        min_y = row * self._grid_cell_size_m
+        max_x = min_x + self._grid_cell_size_m
+        max_y = min_y + self._grid_cell_size_m
+
         boundary = [
-            Point(lat - half, lon - half),
-            Point(lat - half, lon + half),
-            Point(lat + half, lon + half),
-            Point(lat + half, lon - half),
+            self._projected_to_point(min_x, min_y),
+            self._projected_to_point(min_x, max_y),
+            self._projected_to_point(max_x, max_y),
+            self._projected_to_point(max_x, min_y),
         ]
+        centroid = self._projected_to_point(
+            min_x + self._grid_cell_size_m / 2,
+            min_y + self._grid_cell_size_m / 2,
+        )
         return Zone(zone_id, boundary, centroid)

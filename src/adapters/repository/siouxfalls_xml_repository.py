@@ -18,15 +18,19 @@ class SiouxFallsXmlRepository(CottbusXmlRepository):
         data_dir: str | Path = "siouxfalls",
         schedule_file: str = "Siouxfalls_transitSchedule.xml",
         plans_file: str = "Siouxfalls_population.xml",
-        max_plans: int = 200,
-        zone_half_size_deg: float = 0.01,
+        max_plans: int | None = 200,
+        grid_cell_size_m: float = 500.0,
         default_demand: float = 1.0,
+        source_crs: str = "EPSG:32614",
+        target_crs: str = "EPSG:4326",
     ):
         super().__init__(
             data_dir=data_dir,
             schedule_file=schedule_file,
             plans_file=plans_file,
             max_plans=max_plans,
-            zone_half_size_deg=zone_half_size_deg,
+            grid_cell_size_m=grid_cell_size_m,
             default_demand=default_demand,
+            source_crs=source_crs,
+            target_crs=target_crs,
         )

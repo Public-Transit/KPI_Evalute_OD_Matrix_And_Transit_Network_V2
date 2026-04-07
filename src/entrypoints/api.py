@@ -214,8 +214,8 @@ class CalculateAllRoutesKPIResponse(BaseModel):
 
 
 DEFAULT_REFERENCE_PATH = "siouxfalls"
-DEFAULT_MAX_PLANS = 5
-DEFAULT_ZONE_HALF_SIZE_DEG = 0.05
+DEFAULT_MAX_PLANS = 20
+DEFAULT_GRID_CELL_SIZE_M = 500.0
 
 
 def build_repository():
@@ -225,13 +225,13 @@ def build_repository():
     #     schedule_file="schedule.xml",
     #     plans_file="plans_scale0.375true.xml",
     #     max_plans=DEFAULT_MAX_PLANS,
-    #     zone_half_size_deg=DEFAULT_ZONE_HALF_SIZE_DEG,
+    #     grid_cell_size_m=DEFAULT_GRID_CELL_SIZE_M,
     # )
 
     return SiouxFallsXmlRepository(
         data_dir=DEFAULT_REFERENCE_PATH,
         max_plans=DEFAULT_MAX_PLANS,
-        zone_half_size_deg=DEFAULT_ZONE_HALF_SIZE_DEG,
+        grid_cell_size_m=DEFAULT_GRID_CELL_SIZE_M,
     )
 
 

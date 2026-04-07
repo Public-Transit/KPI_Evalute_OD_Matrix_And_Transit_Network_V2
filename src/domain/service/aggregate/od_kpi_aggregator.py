@@ -16,7 +16,7 @@ class ODKPIAggregator:
         alpha: float = 0.7,
         max_valid_transfer_count: float = 1.0,
         max_valid_circuity: float = 2.5,
-        min_valid_service_coverage_ratio: float = 0.1,
+        min_valid_service_coverage_ratio: float = 0.01,
     ) -> dict[str, Any]:
         self._validate_configuration(
             alpha=alpha,
