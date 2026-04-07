@@ -84,7 +84,6 @@ def find_closest_stop_to_centroid(zone: Zone, transit_network: TransitNetwork, g
             best_stop = stop
     return best_stop
 
-
 def find_intersecting_trip_between_candidatetrip_and_trip(candidate_trip: CandidateTrip, trip: Trip, transit_network: TransitNetwork) -> list[Trip]:
     """
     Tìm ra các trip giao giữa 1 candidate trip và 1 trip thực tế.
@@ -204,3 +203,9 @@ def find_intersecting_trip_between_candidatetrip_and_trip(candidate_trip: Candid
 
     return served_trip_subsets
 
+def reverse_route_to_trip(routes: list[Route]) -> list[Trip]:
+    trips = []
+    for route in routes:
+        trips.append(Trip(legs=[Leg(route.id(), route.stops_seq()[0], route.stops_seq()[-1])]))
+    return trips
+        

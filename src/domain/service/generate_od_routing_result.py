@@ -12,7 +12,7 @@ class GenerateODRoutingResultService:
         self._routing_method = routing_method
         self._candidate_trip_filter = candidate_trip_filter
 
-    def generate_od_routing_result(self,od_matrix: ODMatrix, transit_network: TransitNetwork, geometry_calculator: IGeometryCalculator) -> ODRoutingResultV2:
+    def generate_od_routing_result(self,od_matrix: ODMatrix, transit_network: TransitNetwork, geometry_calculator: IGeometryCalculator) -> list[ODRoutingResultV2]:
         
         list_od_routing_results: list[ODRoutingResultV2] = []
 
