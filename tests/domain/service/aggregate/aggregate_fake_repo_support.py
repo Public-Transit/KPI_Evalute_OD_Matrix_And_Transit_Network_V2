@@ -126,7 +126,16 @@ class AggregateRepoAG4(_AggregateRepoBase):
             self.s("S2_CENTER_B", 500, 100),
         ]
         self.routes = [
-            Route("R_LOW_COVERAGE", [self.p(100, 100), self.p(500, 100)], ["S1_CENTER_A", "S2_CENTER_A"]),
+            Route(
+                "R_LOW_COVERAGE",
+                [
+                    self.p(100, 100),
+                    self.p(100, 450),
+                    self.p(500, 450),
+                    self.p(500, 100),
+                ],
+                ["S1_CENTER_A", "S2_CENTER_A"],
+            ),
             Route("R_HIGH_CIRCUITY", [self.p(100, 100), self.p(100, 500), self.p(500, 500), self.p(500, 100)], ["S1_CENTER_B", "S2_CENTER_B"]),
         ]
 

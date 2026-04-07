@@ -1,6 +1,6 @@
 # src/entrypoints/api.py
 from numbers import Real
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -25,7 +25,7 @@ from src.domain.service.routing import CombinedRoutingEngine
 from src.domain.service.trip_kpi_caculator.total_potential_demand_in_trip import (
     TotalPotentialDemandInTripCalculator,
 )
-from src.service_layer.service import routing_services, trip_kpi_services
+from src.service_layer.service import route_kpi_service, routing_services, trip_kpi_services
 from src.service_layer.unit_of_work import DummyUnitOfWork
 
 
@@ -33,6 +33,11 @@ app = FastAPI(
     title="Transit Network KPI API",
     description="API dinh tuyen va danh gia KPI mang luoi giao thong",
 )
+
+
+@app.get("/")
+def read_root() -> dict[str, str]:
+    return {"message": "Server is running"}
 
 
 class RouteUpdateRequest(BaseModel):
@@ -207,6 +212,52 @@ class CalculateAllRoutesKPIResponse(BaseModel):
                                 "alight_stop": "S4",
                             }
                         ],
+                    }
+                ],
+            }
+        }
+    }
+
+
+class RouteFormKPIResultResponse(BaseModel):
+    route_ids: list[str] = Field(
+        ..., description="Route identifiers that compose the route-form trip."
+    )
+    stops: list[str] = Field(
+        ..., description="Ordered stop sequence covered by this route-form trip."
+    )
+    kpis: dict[str, Any] = Field(
+        ..., description="KPI calculator outputs keyed by calculator class name."
+    )
+
+
+class CalculateAllRouteFormsKPIResponse(BaseModel):
+    status: Literal["success"] = Field(
+        ..., description="Processing status of the API response."
+    )
+    data: list[RouteFormKPIResultResponse]
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "status": "success",
+                "data": [
+                    {
+                        "route_ids": ["R1"],
+                        "stops": ["S1", "S4"],
+                        "kpis": {
+                            "TotalPotentialDemandInTripCalculator": {
+                                "total_demand": 120.0,
+                                "served_od_details": [
+                                    {
+                                        "od_pair_id": "OD1",
+                                        "demand": 120.0,
+                                        "board_stop": "S1",
+                                        "alight_stop": "S4",
+                                    }
+                                ],
+                            }
+                        },
                     }
                 ],
             }
@@ -394,15 +445,42 @@ def calculate_kpi_all_od_pairs() -> CalculateAllKPIResponse:
 
 @app.post(
     "/api/kpi/calculate-all-routes",
+    response_model=CalculateAllRouteFormsKPIResponse,
+    summary="Calculate KPI summary for all route-form trips",
+    response_description="Route-form KPI results grouped by reconstructed trips from routes.",
+)
+def calculate_kpi_all_routes() -> CalculateAllRouteFormsKPIResponse:
+    """
+    Calculate route-form KPI results for all trips reconstructed from routes.
+    """
+    repo = build_repository()
+    uow = DummyUnitOfWork(repo)
+    routing_engine = CombinedRoutingEngine()
+    geo_calc = ShapelyGeometryCalculator()
+
+    try:
+        results = route_kpi_service.calculate_kpis_for_all_routes(
+            [TotalPotentialDemandInTripCalculator()],
+            uow,
+            routing_engine,
+            geo_calc,
+            None,
+        )
+        return {"status": "success", "data": results}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post(
+    "/api/kpi/calculate-all-trips",
     response_model=CalculateAllRoutesKPIResponse,
     summary="Calculate KPI summary for all trips",
     response_description="Concise trip-level KPI results grouped by trip.",
 )
-def calculate_kpi_all_routes() -> CalculateAllRoutesKPIResponse:
+def calculate_kpi_all_trips() -> CalculateAllRoutesKPIResponse:
     """
     Calculate concise trip-level KPI results for all trips.
     """
-    app_config = load_app_config()
     repo = build_repository()
     uow = DummyUnitOfWork(repo)
     routing_engine = CombinedRoutingEngine()

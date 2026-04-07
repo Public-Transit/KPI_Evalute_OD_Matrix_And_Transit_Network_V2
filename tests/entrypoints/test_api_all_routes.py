@@ -37,7 +37,7 @@ def test_calculate_kpi_all_routes_returns_concise_trip_schema(monkeypatch):
         _fake_calculate_kpis_for_all_trips,
     )
 
-    payload = api.calculate_kpi_all_routes()
+    payload = api.calculate_kpi_all_trips()
 
     assert payload["status"] == "success"
     assert len(payload["data"]) == 1
@@ -67,7 +67,7 @@ def test_calculate_kpi_all_routes_returns_concise_trip_schema(monkeypatch):
 def test_openapi_declares_concise_route_response_contract():
     openapi_schema = api.app.openapi()
 
-    response_schema = openapi_schema["paths"]["/api/kpi/calculate-all-routes"]["post"][
+    response_schema = openapi_schema["paths"]["/api/kpi/calculate-all-trips"]["post"][
         "responses"
     ]["200"]["content"]["application/json"]["schema"]
     components = openapi_schema["components"]["schemas"]
@@ -81,4 +81,64 @@ def test_openapi_declares_concise_route_response_contract():
     }
     assert set(components["TripSummaryScoresResponse"]["properties"]) == {
         "total_potential_demand",
+    }
+
+
+def _fake_calculate_kpis_for_all_routes(*args, **kwargs):
+    return [
+        {
+            "route_ids": ["R1"],
+            "stops": ["S1", "S3"],
+            "kpis": {
+                "TotalPotentialDemandInTripCalculator": {
+                    "total_demand": 100.0,
+                    "served_od_details": [
+                        {
+                            "od_pair_id": "OD1",
+                            "demand": 100.0,
+                            "board_stop": "S1",
+                            "alight_stop": "S3",
+                        }
+                    ],
+                }
+            },
+        }
+    ]
+
+
+def test_calculate_kpi_all_routes_returns_route_form_schema(monkeypatch):
+    monkeypatch.setattr(
+        api.route_kpi_service,
+        "calculate_kpis_for_all_routes",
+        _fake_calculate_kpis_for_all_routes,
+    )
+
+    payload = api.calculate_kpi_all_routes()
+
+    assert payload["status"] == "success"
+    assert len(payload["data"]) == 1
+
+    first_route_form = payload["data"][0]
+    assert set(first_route_form) == {"route_ids", "stops", "kpis"}
+    assert first_route_form["route_ids"] == ["R1"]
+    assert first_route_form["stops"] == ["S1", "S3"]
+    assert (
+        first_route_form["kpis"]["TotalPotentialDemandInTripCalculator"]["total_demand"]
+        == pytest.approx(100.0)
+    )
+
+
+def test_openapi_declares_route_form_response_contract():
+    openapi_schema = api.app.openapi()
+
+    response_schema = openapi_schema["paths"]["/api/kpi/calculate-all-routes"]["post"][
+        "responses"
+    ]["200"]["content"]["application/json"]["schema"]
+    components = openapi_schema["components"]["schemas"]
+
+    assert response_schema == {"$ref": "#/components/schemas/CalculateAllRouteFormsKPIResponse"}
+    assert set(components["RouteFormKPIResultResponse"]["properties"]) == {
+        "route_ids",
+        "stops",
+        "kpis",
     }
