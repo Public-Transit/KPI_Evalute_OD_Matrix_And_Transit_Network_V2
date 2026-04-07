@@ -1,0 +1,109 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Transit Network Web Visualize</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <section class="toolbar">
+      <div class="toolbar-group span-2">
+        <label for="datasetSelect">Dataset</label>
+        <select id="datasetSelect">
+          <option value="siouxfalls">Sioux Falls</option>
+          <option value="cottbus">Cottbus</option>
+        </select>
+      </div>
+      <div class="toolbar-group span-2">
+        <label for="maxPlansInput">Max Plans</label>
+        <input id="maxPlansInput" type="text" value="20" placeholder="20 or None">
+      </div>
+      <div class="toolbar-group span-2">
+        <label for="gridCellSizeInput">Grid Cell Size (m)</label>
+        <input id="gridCellSizeInput" type="number" value="500" min="50" step="50">
+      </div>
+      <div class="toolbar-group span-2">
+        <label for="topNOdInput">Top N OD Render</label>
+        <input id="topNOdInput" type="number" value="200" min="1" step="1">
+      </div>
+      <div class="toolbar-group span-2">
+        <label for="coverageRadiusInput">Coverage Radius (m)</label>
+        <input id="coverageRadiusInput" type="number" value="50" min="1" step="10">
+      </div>
+      <div class="toolbar-group span-2">
+        <label>&nbsp;</label>
+        <button id="loadButton" class="button-primary">Load Network</button>
+      </div>
+
+      <div class="toolbar-group span-4">
+        <label>Layers</label>
+        <div class="layer-grid">
+          <label class="toggle-chip"><input type="checkbox" id="layerZone" checked> Zone</label>
+          <label class="toggle-chip"><input type="checkbox" id="layerRoute" checked> Route</label>
+          <label class="toggle-chip"><input type="checkbox" id="layerStop" checked> Stop</label>
+          <label class="toggle-chip"><input type="checkbox" id="layerOd"> OD</label>
+        </div>
+      </div>
+      <div class="toolbar-group span-4">
+        <label for="backendUrlInput">KPI Backend URL</label>
+        <input id="backendUrlInput" type="text" value="http://127.0.0.1:8000/api/kpi/calculate-all">
+      </div>
+      <div class="toolbar-group span-2">
+        <label>&nbsp;</label>
+        <button id="fitButton" class="button-secondary">Fit To Data</button>
+      </div>
+      <div class="toolbar-group span-2">
+        <label>&nbsp;</label>
+        <button id="calculateKpiButton" class="button-primary">Calculate KPI</button>
+      </div>
+    </section>
+
+    <section class="map-panel">
+      <div class="map-header">
+        <div class="map-title">
+          <strong>Interactive Transit Network</strong>
+          <span id="networkSummary">Load a dataset to inspect zones, routes, stops and OD pairs.</span>
+        </div>
+        <div class="pill" id="mapStatusPill">Idle</div>
+      </div>
+      <canvas id="mapCanvas"></canvas>
+      <div id="tooltip" class="tooltip"></div>
+    </section>
+
+    <aside class="sidebar">
+      <section class="sidebar-section">
+        <h2>Details</h2>
+        <div id="statusBox" class="status-line"><strong>State:</strong> Waiting for data.</div>
+      </section>
+      <section class="sidebar-section">
+        <h3>OD Controls</h3>
+        <div class="od-controls">
+          <label class="toggle-chip"><input type="checkbox" id="hideInvalidToggle"> Hide invalid OD</label>
+          <div class="toolbar-group compact-group">
+            <label for="sortSelect">Sort OD List</label>
+            <select id="sortSelect">
+              <option value="composite_desc">Composite high -> low</option>
+              <option value="composite_asc">Composite low -> high</option>
+              <option value="demand_desc">Demand high -> low</option>
+              <option value="demand_asc">Demand low -> high</option>
+              <option value="id_asc">ID A -> Z</option>
+            </select>
+          </div>
+        </div>
+      </section>
+      <section class="sidebar-section od-list" id="odListSection">
+        <h3>OD List</h3>
+        <div id="odList" class="hint">KPI results will appear here after calculation.</div>
+      </section>
+      <section class="sidebar-section detail-panel" id="detailPanelSection">
+        <h3>Object Details</h3>
+        <div id="detailPanel" class="hint">Hover or click a zone, route, stop or OD to inspect its details.</div>
+      </section>
+    </aside>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
