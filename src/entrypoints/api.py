@@ -214,8 +214,8 @@ class CalculateAllRoutesKPIResponse(BaseModel):
 
 
 DEFAULT_REFERENCE_PATH = "siouxfalls"
-DEFAULT_MAX_PLANS = 20
-DEFAULT_GRID_CELL_SIZE_M = 500.0
+DEFAULT_MAX_PLANS = 200
+DEFAULT_GRID_CELL_SIZE_M = 1000.0
 
 
 def build_repository():

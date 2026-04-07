@@ -20,7 +20,7 @@ class SpatialCoverageCalculator(KPICalculator):
         od_matrix: ODMatrix = kwargs.get("od_matrix")
         transit_network: TransitNetwork = kwargs.get("transit_network")
         geometry_calculator: IGeometryCalculator = kwargs.get("geometry_calculator")
-        radius_m: float = kwargs.get("radius_m", 50.0)
+        radius_m: float = kwargs.get("radius_m", 500.0)
 
         if not all([od_pair_id, od_matrix, transit_network, geometry_calculator]):
             raise ValueError("od_pair_id, od_matrix, transit_network and geometry_calculator are required")
