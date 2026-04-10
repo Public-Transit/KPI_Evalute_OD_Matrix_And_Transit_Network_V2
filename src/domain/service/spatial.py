@@ -7,8 +7,49 @@ from src.domain.model.transit_network import TransitNetwork
 from src.domain.model.trip import Trip, CandidateTrip
 from src.domain.model.leg import Leg
 from src.domain.port import IGeometryCalculator
+from src.domain.model.point import Point
 
 import itertools
+
+def get_closest_stop(stop_ids: set[str], centroid: Point, transit_network: TransitNetwork, calc: IGeometryCalculator) -> Stop:
+    best_stop = None
+    min_dist = float('inf')
+    for sid in stop_ids:
+        stop = transit_network.get_stop_by_id(sid)
+        if not stop: continue
+        d = stop.coord().distance_to(centroid, calc)
+        if d < min_dist:
+            min_dist = d
+            best_stop = stop
+    return best_stop
+
+def get_first_stop_in_route(stop_ids: set[str], route: Route) -> str:
+    seq = route.stops_seq()
+    first_stop_id = None
+    min_idx = float('inf')
+    for sid in stop_ids:
+        try:
+            idx = seq.index(sid)
+            if idx < min_idx:
+                min_idx = idx
+                first_stop_id = sid
+        except ValueError:
+            pass
+    return first_stop_id
+
+def get_last_stop_in_route(stop_ids: set[str], route: Route) -> str:
+    seq = route.stops_seq()
+    last_stop_id = None
+    max_idx = -1
+    for sid in stop_ids:
+        try:
+            idx = seq.index(sid)
+            if idx > max_idx:
+                max_idx = idx
+                last_stop_id = sid
+        except ValueError:
+            pass
+    return last_stop_id
 
 def find_all_routes_pass_through_zone(zone: Zone, transit_network: TransitNetwork, geometry_calculator: IGeometryCalculator) -> list[Route]:
     """
